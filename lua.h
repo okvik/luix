@@ -55,6 +55,7 @@
 
 
 typedef struct lua_State lua_State;
+#pragma incomplete lua_State;
 
 
 /*

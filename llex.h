@@ -76,6 +76,7 @@ typedef struct LexState {
   TString *source;  /* current source name */
   TString *envn;  /* environment variable name */
 } LexState;
+#pragma incomplete LexState;
 
 
 LUAI_FUNC void luaX_init (lua_State *L);

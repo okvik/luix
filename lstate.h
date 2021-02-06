@@ -184,6 +184,7 @@ typedef struct CallInfo {
   short nresults;  /* expected number of results from this function */
   unsigned short callstatus;
 } CallInfo;
+#pragma incomplete CallInfo;
 
 
 /*
