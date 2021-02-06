@@ -1225,6 +1225,17 @@ static void createcat (lua_State *L, const char *catname, int (catf) (int)) {
   lua_setfield(L, -2, catname);
 }
 
+static int fn_isalnum (int c) {return isalnum(c);}
+static int fn_isalpha (int c) {return isalpha(c);}
+static int fn_iscntrl (int c) {return iscntrl(c);}
+static int fn_isdigit (int c) {return isdigit(c);}
+static int fn_isgraph (int c) {return isgraph(c);}
+static int fn_islower (int c) {return islower(c);}
+static int fn_isprint (int c) {return isprint(c);}
+static int fn_ispunct (int c) {return ispunct(c);}
+static int fn_isspace (int c) {return isspace(c);}
+static int fn_isupper (int c) {return isupper(c);}
+static int fn_isxdigit (int c) {return isxdigit(c);}
 
 static int lp_locale (lua_State *L) {
   if (lua_isnoneornil(L, 1)) {
@@ -1235,17 +1246,17 @@ static int lp_locale (lua_State *L) {
     luaL_checktype(L, 1, LUA_TTABLE);
     lua_settop(L, 1);
   }
-  createcat(L, "alnum", isalnum);
-  createcat(L, "alpha", isalpha);
-  createcat(L, "cntrl", iscntrl);
-  createcat(L, "digit", isdigit);
-  createcat(L, "graph", isgraph);
-  createcat(L, "lower", islower);
-  createcat(L, "print", isprint);
-  createcat(L, "punct", ispunct);
-  createcat(L, "space", isspace);
-  createcat(L, "upper", isupper);
-  createcat(L, "xdigit", isxdigit);
+  createcat(L, "alnum", fn_isalnum);
+  createcat(L, "alpha", fn_isalpha);
+  createcat(L, "cntrl", fn_iscntrl);
+  createcat(L, "digit", fn_isdigit);
+  createcat(L, "graph", fn_isgraph);
+  createcat(L, "lower", fn_islower);
+  createcat(L, "print", fn_isprint);
+  createcat(L, "punct", fn_ispunct);
+  createcat(L, "space", fn_isspace);
+  createcat(L, "upper", fn_isupper);
+  createcat(L, "xdigit", fn_isxdigit);
   return 1;
 }
 
