@@ -89,7 +89,7 @@ static const char *utf8_decode (const char *s, utfint *val, int strict) {
 ** start in the range [i,j], or nil + current position if 's' is not
 ** well formed in that interval
 */
-static int utflen (lua_State *L) {
+static int _utflen (lua_State *L) {
   lua_Integer n = 0;  /* counter for the number of characters */
   size_t len;  /* string length in bytes */
   const char *s = luaL_checklstring(L, 1, &len);
@@ -272,7 +272,7 @@ static const luaL_Reg funcs[] = {
   {"offset", byteoffset},
   {"codepoint", codepoint},
   {"char", utfchar},
-  {"len", utflen},
+  {"len", _utflen},
   {"codes", iter_codes},
   /* placeholders */
   {"charpattern", NULL},
