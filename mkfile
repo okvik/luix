@@ -33,6 +33,7 @@ LIBOBJS=\
 	liolib.$O\
 	lmathlib.$O\
 #	loslib.$O\
+	los9lib.$O\
 	ltablib.$O\
 	lstrlib.$O\
 	lutf8lib.$O\
