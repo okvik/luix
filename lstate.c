@@ -398,6 +398,8 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
     close_state(L);
     L = NULL;
   }
+  if(priv_errno == nil)
+  	priv_errno = (errno_t*)privalloc();
   return L;
 }
 
