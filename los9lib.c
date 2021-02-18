@@ -239,19 +239,11 @@ os_time(lua_State *L)
 	return 1;
 }
 
-static vlong
-l_checktime(lua_State *L, int arg)
-{
-	vlong t = luaL_checkinteger(L, arg);
-	luaL_argcheck(L, (vlong)t == t, arg, "time out-of-bounds");
-	return t;
-}
-
 static int
 os_difftime(lua_State *L)
 {
-	vlong t1 = l_checktime(L, 1);
-	vlong t2 = l_checktime(L, 2);
+	vlong t1 = luaL_checkinteger(L, 1);
+	vlong t2 = luaL_checkinteger(L, 2);
 	lua_pushnumber(L, (lua_Number)(t1 - t2));
 	return 1;
 }
@@ -335,7 +327,7 @@ os_date(lua_State *L)
 	Tm tm, *tp;
 	
 	s = luaL_optstring(L, 1, "%c");
-	t = luaL_opt(L, l_checktime, 2, time(nil));
+	t = luaL_opt(L, luaL_checkinteger, 2, time(nil));
 	if(s[0] == '!'){
 		tp = gmtime(t);
 		s++;
@@ -369,10 +361,10 @@ static const luaL_Reg syslib[] = {
 	{"rename",    os_rename},
 	{"tmpname",   os_tmpname},
 	{"clock",     os_clock},
-  {"date",      os_date},
-  {"time",      os_time},
-  {"difftime",  os_difftime},
-	{"setlocale", os_setlocale},
+	{"date",      os_date},
+	{"time",      os_time},
+	{"difftime",  os_difftime},
+	{"setlocale",	os_setlocale},
 	{nil, nil}
 };
 
