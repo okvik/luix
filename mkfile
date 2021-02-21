@@ -1,6 +1,6 @@
 </$objtype/mkfile
 
-CFLAGS=-FTV -p -I../shim -DLUA_USE_PLAN9
+CFLAGS=-FTV -p -I../shim -DLUA_USE_PLAN9 -DLUA_UCID
 
 CORETARG=liblua.a$O
 COREOBJS=\
