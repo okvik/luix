@@ -346,7 +346,8 @@ os_date(lua_State *L)
 static int
 os_setlocale(lua_State *L)
 {
-	if(lua_isnil(L, 1) || strcmp(luaL_checkstring(L, 1), "C") == 0)
+	if(lua_gettop(L) == 0 || lua_isnil(L, 1)
+	|| strcmp(luaL_checkstring(L, 1), "C") == 0)
 		lua_pushstring(L, "C");
 	else
 		luaL_pushfail(L);
