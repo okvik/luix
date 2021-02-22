@@ -226,6 +226,7 @@ os_time(lua_State *L)
 	else {
 		luaL_checktype(L, 1, LUA_TTABLE);
 		lua_settop(L, 1);
+		tm.tz = tzload("local");
 		tm.year = getfield(L, "year", -1, 1900);
 		tm.mon = getfield(L, "month", -1, 1);
 		tm.mday = getfield(L, "day", -1, 0);
