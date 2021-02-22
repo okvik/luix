@@ -343,9 +343,9 @@ os_date(lua_State *L)
 	t = luaL_opt(L, luaL_checkinteger, 2, time(nil));
 	if(fmt[0] == '!'){
 		fmt++; fmtlen--;
-		tp = gmtime(t);
+		tp = tmtime(&tm, t, tzload("GMT"));
 	}else
-		tp = localtime(t);
+		tp = tmtime(&tm, t, tzload("local"));
 	if(tp == nil)
 		return luaL_error(L, "date result cannot be represented in this installation");
 	if(strcmp(fmt, "*t") == 0){
