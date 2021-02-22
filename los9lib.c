@@ -249,98 +249,110 @@ os_difftime(lua_State *L)
 	return 1;
 }
 
-static void
-l_fmttime(lua_State *L, char *fmt, Tm *tm)
+static char*
+datefmt1(lua_State *L, char **sp, Tm *tm)
 {
 	char *s, mod;
 	Fmt f;
 	
 	fmtstrinit(&f);
-	for(s = fmt; *s; s++){
-		if(s[0] != '%'){
-			fmtprint(&f, "%c", s[0]);
-			continue;
-		}
+	s = *sp;
+	if(s[0] == 'E' || s[0] == '0'){
+		mod = s[0];
 		s++;
-		if(s[0] == '%'){
-			fmtprint(&f, "%");
-			continue;
-		}
-		if(s[0] == 'E' || s[0] == '0'){
-			mod = s[0];
-			s++;
-		}
-		switch(s[0]){
-		case 'n': fmtprint(&f, "\n"); break;
-		case 't': fmtprint(&f, "\t"); break;
-		
-		case 'y': fmtprint(&f, "%τ", tmfmt(tm, "YY")); break;
-		case 'Y': fmtprint(&f, "%τ", tmfmt(tm, "YYYY")); break;
-		
-		case 'm': fmtprint(&f, "%τ", tmfmt(tm, "MM")); break;
-		case 'b': fmtprint(&f, "%τ", tmfmt(tm, "MMM")); break;
-		case 'B': fmtprint(&f, "%τ", tmfmt(tm, "MMMM")); break;
-		
-		/* TODO: week of the year calculation */
-		case 'U': fmtprint(&f, "00"); break;
-		case 'W': fmtprint(&f, "01"); break;
-		
-		case 'j': fmtprint(&f, "%.3d", tm->yday + 1); break;
-		case 'd': fmtprint(&f, "%.2d", tm->mday); break;
-
-		case 'w': fmtprint(&f, "%τ", tmfmt(tm, "W")); break;
-		case 'a': fmtprint(&f, "%τ", tmfmt(tm, "WW")); break;
-		case 'A': fmtprint(&f, "%τ", tmfmt(tm, "WWW")); break;
-		
-		case 'H': fmtprint(&f, "%τ", tmfmt(tm, "hh")); break;
-		case 'I': fmtprint(&f, "%d", tm->hour % 12); break;
-		
-		case 'M': fmtprint(&f, "%τ", tmfmt(tm, "mm")); break;
-		
-		case 'S': fmtprint(&f, "%τ", tmfmt(tm, "ss")); break;
-		
-		case 'c': case 'x': fmtprint(&f, "%τ", tmfmt(tm, nil)); break;
-		case 'X': fmtprint(&f, "%τ", tmfmt(tm, "hh[:]mm[:]ss")); break;
-		
-		case 'p': fmtprint(&f, "%τ", tmfmt(tm, "a")); break;
-		
-		case 'Z': fmtprint(&f, "%τ", tmfmt(tm, "Z")); break;
-		
-		default:
-			fmtprint(&f, "%%");
-			if(mod)
-				fmtprint(&f, "%c", mod);
-			fmtprint(&f, "%c", s[0]);
-			break;
-		}
-		mod = 0;
 	}
-	s = fmtstrflush(&f);
-	lua_pushstring(L, s);
-	free(s);
+	switch(s[0]){
+	case '%': fmtprint(&f, "%%"); break;
+	case 'n': fmtprint(&f, "\n"); break;
+	case 't': fmtprint(&f, "\t"); break;
+	
+	case 'y': fmtprint(&f, "%τ", tmfmt(tm, "YY")); break;
+	case 'Y': fmtprint(&f, "%τ", tmfmt(tm, "YYYY")); break;
+	
+	case 'm': fmtprint(&f, "%τ", tmfmt(tm, "MM")); break;
+	case 'b': fmtprint(&f, "%τ", tmfmt(tm, "MMM")); break;
+	case 'B': fmtprint(&f, "%τ", tmfmt(tm, "MMMM")); break;
+	
+	/* TODO: week of the year calculation */
+	case 'U': fmtprint(&f, "00"); break;
+	case 'W': fmtprint(&f, "01"); break;
+	
+	case 'j': fmtprint(&f, "%.3d", tm->yday + 1); break;
+	case 'd': fmtprint(&f, "%.2d", tm->mday); break;
+
+	case 'w': fmtprint(&f, "%τ", tmfmt(tm, "W")); break;
+	case 'a': fmtprint(&f, "%τ", tmfmt(tm, "WW")); break;
+	case 'A': fmtprint(&f, "%τ", tmfmt(tm, "WWW")); break;
+	
+	case 'H': fmtprint(&f, "%τ", tmfmt(tm, "hh")); break;
+	case 'I': fmtprint(&f, "%d", tm->hour % 12); break;
+	
+	case 'M': fmtprint(&f, "%τ", tmfmt(tm, "mm")); break;
+	
+	case 'S': fmtprint(&f, "%τ", tmfmt(tm, "ss")); break;
+
+	case 'c': case 'x': fmtprint(&f, "%τ", tmfmt(tm, nil)); break;
+	case 'X': fmtprint(&f, "%τ", tmfmt(tm, "hh[:]mm[:]ss")); break;
+	
+	case 'p': fmtprint(&f, "%τ", tmfmt(tm, "a")); break;
+	
+	case 'Z': fmtprint(&f, "%τ", tmfmt(tm, "Z")); break;
+	
+	default:
+		fmtprint(&f, "%%");
+		if(mod)
+			fmtprint(&f, "%c", mod);
+		fmtprint(&f, "%c", s[0]);
+		break;
+	}
+	*sp = ++s;
+	return fmtstrflush(&f);
+}
+
+static void
+datefmt(lua_State *L, char *fmt, long fmtlen, Tm *tm)
+{
+	char *s, *e, *p;
+	luaL_Buffer b;
+	
+	luaL_buffinit(L, &b);
+	s = fmt;
+	e = fmt + fmtlen;
+	while(s < e){
+		if(s[0] != '%')
+			luaL_addchar(&b, *s++);
+		else {
+			s++;
+			p = datefmt1(L, &s, tm);
+			luaL_addstring(&b, p);
+			free(p);
+		}
+	}
+	luaL_pushresult(&b);
 }
 
 static int
 os_date(lua_State *L)
 {
-	char *s;
+	char *fmt;
+	size_t fmtlen;
 	vlong t;
 	Tm tm, *tp;
 	
-	s = luaL_optstring(L, 1, "%c");
+	fmt = luaL_optlstring(L, 1, "%c", &fmtlen);
 	t = luaL_opt(L, luaL_checkinteger, 2, time(nil));
-	if(s[0] == '!'){
+	if(fmt[0] == '!'){
+		fmt++; fmtlen--;
 		tp = gmtime(t);
-		s++;
 	}else
 		tp = localtime(t);
 	if(tp == nil)
 		return luaL_error(L, "date result cannot be represented in this installation");
-	if(strcmp(s, "*t") == 0){
+	if(strcmp(fmt, "*t") == 0){
 		lua_createtable(L, 0, 9);
 		setallfields(L, tp);
 	}else
-		l_fmttime(L, s, tp);
+		datefmt(L, fmt, fmtlen, tp);
 	return 1;
 }
 
