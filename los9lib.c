@@ -236,7 +236,7 @@ os_time(lua_State *L)
 		t = tmnorm(&tm);
 		setallfields(L, &tm);
 	}
-	lua_pushnumber(L, t);
+	lua_pushinteger(L, t);
 	return 1;
 }
 
@@ -245,7 +245,7 @@ os_difftime(lua_State *L)
 {
 	vlong t1 = luaL_checkinteger(L, 1);
 	vlong t2 = luaL_checkinteger(L, 2);
-	lua_pushnumber(L, (lua_Number)(t1 - t2));
+	lua_pushinteger(L, t1 - t2);
 	return 1;
 }
 
