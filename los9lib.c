@@ -17,7 +17,7 @@ dumpstack(lua_State *L)
 
 static int
 os_exit(lua_State *L){
-	char *status;
+	const char *status;
 	
 	status = nil;
 	switch(lua_type(L, 1)){
@@ -40,7 +40,7 @@ os_exit(lua_State *L){
 static int
 os_execute(lua_State *L)
 {
-	char *cmd;
+	const char *cmd;
 	Waitmsg *w;
 	
 	cmd = luaL_optstring(L, 1, nil);
@@ -79,7 +79,7 @@ os_execute(lua_State *L)
 static int
 os_remove(lua_State *L){
 	char err[ERRMAX];
-	char *file;
+	const char *file;
 	
 	file = luaL_checkstring(L, 1);
 	if(remove(file) == -1){
@@ -250,13 +250,14 @@ os_difftime(lua_State *L)
 }
 
 static char*
-datefmt1(lua_State *L, char **sp, Tm *tm)
+datefmt1(lua_State *, char **sp, Tm *tm)
 {
 	char *s, mod;
 	Fmt f;
 	
 	fmtstrinit(&f);
 	s = *sp;
+	mod = 0;
 	if(s[0] == 'E' || s[0] == '0'){
 		mod = s[0];
 		s++;
@@ -334,7 +335,7 @@ datefmt(lua_State *L, char *fmt, long fmtlen, Tm *tm)
 static int
 os_date(lua_State *L)
 {
-	char *fmt;
+	const char *fmt;
 	size_t fmtlen;
 	vlong t;
 	Tm tm, *tp;
