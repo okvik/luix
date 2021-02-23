@@ -28,7 +28,7 @@ os_exit(lua_State *L){
 		status = lua_toboolean(L, 1) ? nil : "failure";
 		break;
 	case LUA_TNUMBER:
-		status = smprint("failure %d", lua_tointeger(L, 1));
+		status = smprint("failure %lld", lua_tointeger(L, 1));
 		break;
 	}
 	if(lua_toboolean(L, 2))
