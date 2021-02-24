@@ -2,7 +2,8 @@
 
 CFLAGS=-FTV -p -I../shim -DLUA_USE_PLAN9 -DLUA_UCID
 
-CORETARG=liblua.a$O
+LIB=liblua.a.$O
+
 COREOBJS=\
 	lapi.$O\
 	lcode.$O\
@@ -42,14 +43,13 @@ LIBOBJS=\
 	linit.$O
 
 ALLOBJS=$COREOBJS $LIBOBJS
-ALLTARG=$CORETARG $LUATARG
 
-all:V: $CORETARG $LUATARG
+all:V: $LIB
 
 clean:V:
-	rm -f $LUATARG *.[$OS] *.a[$OS]
+	rm -f *.[$OS] *.a.[$OS]
 
-$CORETARG: $COREOBJS $LIBOBJS
+$LIB: $ALLOBJS
 	ar cr $target $prereq
 
 %.$O: %.c
