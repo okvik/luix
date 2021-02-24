@@ -2,9 +2,10 @@
 
 CFLAGS=-FTV -p -I../shim -I../lua
 
-LIB=liblpeg.a$O
+LIB=liblpeg.a.$O
 
-OBJS=lpvm.$O\
+OBJS=\
+	lpvm.$O\
 	lpcap.$O\
 	lptree.$O\
 	lpcode.$O\
@@ -13,7 +14,7 @@ OBJS=lpvm.$O\
 all:V: $LIB
 
 clean:V:
-	rm -f *.[$OS] *.a[$OS]
+	rm -f *.[$OS] *.a.[$OS]
 
 $LIB: $OBJS
 	ar cr $target $prereq
