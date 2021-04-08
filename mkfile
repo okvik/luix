@@ -13,7 +13,7 @@ all:V: $LIB
 
 install:V: all
 	if(~ $#luav 0)
-		luav=`{lua9 -v}
+		luav=`{lu9 -v}
 	for(p in $MODPATH/$luav)
 		mkdir -p $p/$MOD && dircp mod $p/$MOD
 
