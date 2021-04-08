@@ -1,6 +1,6 @@
 </$objtype/mkfile
 
-CFLAGS=-FTV -p -I../shim -I../lua
+CFLAGS=-FTV -p -I../lua/shim -I../lua
 
 LIB=liblpeg.a.$O
 
