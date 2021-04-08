@@ -1,8 +1,11 @@
 </$objtype/mkfile
 
-CFLAGS=-FTV -p -I../shim -DLUA_USE_PLAN9 -DLUA_UCID
+CFLAGS=-FTV -p -Ishim -DLUA_USE_PLAN9 -DLUA_UCID
 
 LIB=liblua.a.$O
+
+SHIMOBJS=\
+	shim.$O\
 
 COREOBJS=\
 	lapi.$O\
@@ -25,7 +28,6 @@ COREOBJS=\
 	lundump.$O\
 	lvm.$O\
 	lzio.$O\
-	ltests.$O\
 	lauxlib.$O
 
 LIBOBJS=\
@@ -42,7 +44,7 @@ LIBOBJS=\
 	lcorolib.$O\
 	linit.$O
 
-ALLOBJS=$COREOBJS $LIBOBJS
+ALLOBJS=$SHIMOBJS $COREOBJS $LIBOBJS
 
 all:V: $LIB
 
