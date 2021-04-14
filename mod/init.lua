@@ -181,7 +181,7 @@ function p9.create(file, mode, perm)
 	if not perm or #perm == 0 then perm = "644" end
 	mode = parsemode(mode)
 	perm = parseperm(perm)
-	if perm & raw.DMDIR then
+	if perm & raw.DMDIR > 0 then
 		mode = mode & ~(raw.OWRITE)
 	end
 	return raw.create(file, mode, perm)
@@ -316,6 +316,18 @@ end
 -- createfile(string, ...) -> file{}
 function p9.createfile(file, ...)
 	return p9.file(p9.create(file, ...), file)
+end
+
+
+
+-- Filesystem
+--
+function p9.stat(path)
+	return p9.raw.stat(path)
+end
+
+function p9.walk(path, err)
+	return p9.raw.walk(path, err)
 end
 
 

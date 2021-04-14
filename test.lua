@@ -1,6 +1,11 @@
-#!/bin/lua9
+#!/bin/lu9
 
 local p9 = require "p9"
+local dump = (function()
+	local ok, inspect = pcall(require, "inspect")
+	if ok then return function(v) print(inspect(v)) end end
+	return print
+end)()
 
 local function tmp()
 	return string.format("/tmp/lua.%x", math.random(1e10))
@@ -88,6 +93,80 @@ do
 	f:write(data)
 	f:seek(0)
 	assert(f:slurp() == data)
+end
+
+-- Filesystem
+do
+	-- Create a test tree
+	local function File(data) return {
+		type = "file", perm = "644", data = data
+	} end
+	local function Dir(children) return {
+		type = "dir", perm = "d755", children = children
+	} end
+	local function mkfs(path, d)
+		assert(d.type == "dir")
+		p9.createfile(path, nil, d.perm):close()
+		for name, c in pairs(d.children) do
+			local new = path .. "/" .. name
+			if c.type == "dir" then
+				mkfs(new, c)
+			else
+				local f <close> = p9.createfile(new, "w", c.perm)
+				f:write(c.data)
+			end
+		end
+	end
+	local fs = Dir {
+		a = File "a",
+		b = Dir {},
+		c = Dir {
+			ca = File "ca",
+			cb = Dir {
+				cba = File "cba",
+			},
+			cc = File "cc",
+		},
+		d = File "d",
+	}
+	mkfs("/tmp/fs", fs)
+	
+	-- Stat a file
+	assert(p9.stat("/tmp/fs/a").mode.file)
+	
+	-- Walking
+	-- Walking a file (or any other error) must report an error
+	local e = {}
+	for w in p9.walk("/tmp/fs/a", e) do
+		assert(false)
+	end
+	assert(e.error == "walk in a non-directory")
+	-- Without error object an error must be thrown
+	assert(false == pcall(function()
+		for w in p9.walk("tmp/fs/a") do end
+	end))
+	-- Same should happen if the iterator function fails inside
+	-- the loop because of dirread(2) failure, but this kind of
+	-- failure is hard to simulate.
+	
+	-- Walking a directory
+	local function compare(path, fs)
+		assert(fs.type == "dir")
+		for f in p9.walk(path) do
+			local new = path .. "/" .. f.name
+			if f.mode.dir then
+				if compare(new, fs.children[f.name]) == false then
+					return false
+				end
+			else
+				if fs.children[f.name] == nil then
+					error("file does not exist in proto")
+				end
+			end
+		end
+		return true
+	end
+	assert(compare("/tmp/fs", fs) == true)
 end
 
 

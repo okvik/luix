@@ -6,6 +6,29 @@
 #include <lauxlib.h>
 
 static void
+seterror(lua_State *L, char *fmt, ...)
+{
+	va_list varg;
+	int n;
+	char *buf;
+	luaL_Buffer b;
+	
+	buf = luaL_buffinitsize(L, &b, 512);
+	va_start(varg, fmt);
+	n = vsnprint(buf, 512, fmt, varg);
+	va_end(varg);
+	luaL_pushresultsize(&b, n);
+	lua_setfield(L, LUA_REGISTRYINDEX, "p9-error");
+}
+
+static const char*
+pusherror(lua_State *L)
+{
+	lua_getfield(L, LUA_REGISTRYINDEX, "p9-error");
+	return lua_tostring(L, -1);
+}
+
+static void
 lerror(lua_State *L, char *call)
 {
 	char err[ERRMAX];
@@ -104,6 +127,13 @@ static Data p9data[] = {
 	{"DMREAD", DMREAD},
 	{"DMWRITE", DMWRITE},
 	{"DMEXEC", DMEXEC},
+	{"QTDIR", QTDIR},
+	{"QTAPPEND", QTAPPEND},
+	{"QTEXCL", QTEXCL},
+	{"QTMOUNT", QTMOUNT},
+	{"QTAUTH", QTAUTH},
+	{"QTTMP", QTTMP},
+	{"QTFILE", QTFILE},
 	
 	{"MREPL", MREPL},
 	{"MBEFORE", MBEFORE},
@@ -137,6 +167,9 @@ static luaL_Reg p9func[] = {
 	{"remove", p9_remove},
 	{"fd2path", p9_fd2path},
 	
+	{"stat", p9_stat},
+	{"walk", p9_walk},
+	
 	{"bind", p9_bind},
 	{"mount", p9_mount},
 	{"unmount", p9_unmount},
@@ -155,6 +188,13 @@ luaopen_p9(lua_State *L)
 	buf = resizebuffer(L, nil, 8192);
 	lua_pushlightuserdata(L, buf);
 	lua_setfield(L, LUA_REGISTRYINDEX, "p9-buffer");
+	
+	static luaL_Reg walkmt[] = {
+		{"__close", p9_walkclose},
+		{nil, nil},
+	};
+	luaL_newmetatable(L, "p9-Walk");
+	luaL_setfuncs(L, walkmt, 0);
 	
 	luaL_newlib(L, p9func);
 	for(d = p9data; d->key != nil; d++){
