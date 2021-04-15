@@ -9,7 +9,7 @@ p9_bind(lua_State *L)
 	over = luaL_checkstring(L, 2);
 	flag = luaL_checkinteger(L, 3);
 	if((r = bind(this, over, flag)) == -1)
-		lerror(L, "bind");
+		return error(L, "bind: %r");
 	lua_pushinteger(L, r);
 	return 1;
 }
@@ -26,7 +26,7 @@ p9_mount(lua_State *L)
 	flag = luaL_checkinteger(L, 4);
 	aname = luaL_checkstring(L, 5);
 	if((r = mount(fd, afd, over, flag, aname)) == -1)
-		lerror(L, "mount");
+		return error(L, "mount: %r");
 	lua_pushinteger(L, r);
 	return 1;
 }
@@ -40,7 +40,7 @@ p9_unmount(lua_State *L)
 	name = luaL_optstring(L, 1, nil);
 	over = luaL_checkstring(L, 2);
 	if((r = unmount(name, over)) == -1)
-		lerror(L, "unmount");
+		return error(L, "unmount: %r");
 	lua_pushinteger(L, r);
 	return 1;
 }

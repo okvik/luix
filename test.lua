@@ -75,14 +75,14 @@ do
 	local f <close> = p9.createfile(tmp())
 	fd = f.fd
 end
-assert(pcall(p9.seek, fd, 0) == false)
+assert(p9.seek(fd, 0) == nil)
 -- Make sure it's not closed
 local fd
 do
 	local f = p9.createfile(tmp())
 	fd = f.fd
 end
-assert(pcall(p9.seek, fd, 0) == true)
+assert(p9.seek(fd, 0))
 p9.close(fd)
 
 -- Basic operations. These are the same as regular
@@ -173,18 +173,18 @@ end
 
 -- Namespaces
 -- bind and unmount work
-assert(pcall(function()
+assert(function()
 	local f
-	p9.bind("#|", "/n/pipe")
-	f = p9.openfile("/n/pipe/data")
-	p9.unmount("/n/pipe")
-	assert(pcall(p9.openfile, "/n/pipe/data") == false)
-end))
+	assert(p9.bind("#|", "/n/pipe"))
+	f = assert(p9.openfile("/n/pipe/data"))
+	assert(p9.unmount("/n/pipe"))
+	assert(p9.openfile("/n/pipe/data") == nil)
+end)
 -- mount works
-assert(pcall(function()
+assert(function()
 	assert(p9.mount(p9.open("/srv/cwfs", "rw"), nil, "/n/test"))
 	assert(p9.openfile("/n/test/lib/glass"))
-end))
+end)
 
 
 -- Process control

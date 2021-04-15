@@ -8,7 +8,7 @@ p9_open(lua_State *L)
 	file = luaL_checkstring(L, 1);
 	mode = luaL_checkinteger(L, 2);
 	if((fd = open(file, mode)) == -1)
-		lerror(L, "open");
+		return error(L, "open: %r");
 	lua_pushinteger(L, fd);
 	return 1;
 }
@@ -24,7 +24,7 @@ p9_create(lua_State *L)
 	mode = luaL_checkinteger(L, 2);
 	perm = luaL_checkinteger(L, 3);
 	if((fd = create(file, mode, perm)) == -1)
-		lerror(L, "create");
+		return error(L, "create: %r");
 	lua_pushinteger(L, fd);
 	return 1;
 }
@@ -33,7 +33,7 @@ static int
 p9_close(lua_State *L)
 {
 	if(close(luaL_checkinteger(L, 1)) == -1)
-		lerror(L, "close");
+		return error(L, "close: %r");
 	return 0;
 }
 
@@ -53,7 +53,7 @@ p9_read(lua_State *L)
 	else
 		n = pread(fd, buf, nbytes, offset);
 	if(n == -1)
-		lerror(L, "read");
+		return error(L, "read: %r");
 	lua_pushlstring(L, buf, n);
 	return 1;
 }
@@ -75,7 +75,7 @@ p9_write(lua_State *L)
 	else
 		n = pwrite(fd, buf, nbytes, offset);
 	if(n != nbytes)
-		lerror(L, "write");
+		return error(L, "write: %r");
 	lua_pushinteger(L, n);
 	return 1;
 }
@@ -90,7 +90,7 @@ p9_seek(lua_State *L)
 	n = luaL_checkinteger(L, 2);
 	type = luaL_checkinteger(L, 3);
 	if((off = seek(fd, n, type)) == -1)
-		lerror(L, "seek");
+		return error(L, "seek: %r");
 	lua_pushinteger(L, off);
 	return 1;
 }
@@ -102,7 +102,7 @@ p9_remove(lua_State *L)
 	
 	file = luaL_checkstring(L, 1);
 	if(remove(file) == -1)
-		lerror(L, "remove");
+		return error(L, "remove: %r");
 	lua_pushboolean(L, 1);
 	return 1;
 }
@@ -116,7 +116,7 @@ p9_fd2path(lua_State *L)
 	fd = luaL_checkinteger(L, 1);
 	buf = getbuffer(L, 8192);
 	if(fd2path(fd, buf, 8192) != 0)
-		lerror(L, "fd2path");
+		return error(L, "fd2path: %r");
 	lua_pushstring(L, buf);
 	return 1;
 }
@@ -198,12 +198,8 @@ p9_stat(lua_State *L)
 	case LUA_TNUMBER:
 		d = dirfstat(lua_tonumber(L, 1)); break;
 	}
-	if(d == nil){
-		lua_pushnil(L);
-		seterror(L, "stat: %r");
-		pusherror(L);
-		return 2;
-	}
+	if(d == nil)
+		return error(L, "stat: %r");
 	createdirtable(L, d);
 	free(d);
 	return 1;
@@ -220,54 +216,51 @@ p9_walk(lua_State *L)
 {
 	static int p9_walkout(lua_State*);
 	static int p9_walknext(lua_State*);
-	int nargs;
+	int nargs, wstate;
 	Dir *d;
 	Walk *w;
 	
 	nargs = lua_gettop(L);
 	w = lua_newuserdatauv(L, sizeof(Walk), 1);
+	wstate = nargs + 1;
 	w->fd = -1;
 	w->nleft = 0;
 	w->dirs = w->p = nil;
 	luaL_setmetatable(L, "p9-Walk");
 	if(nargs == 2){
-		lua_insert(L, 2);
-		lua_setiuservalue(L, -2, 1);
+		lua_pushvalue(L, 2);
+		lua_setiuservalue(L, wstate, 1);
 	}
 	if(lua_isnumber(L, 1))
 		w->fd = lua_tointeger(L, 1);
 	else{
 		if((w->fd = open(luaL_checkstring(L, 1), OREAD|OCEXEC)) == -1){
-			seterror(L, "open: %r");
+			error(L, "open: %r");
 			goto Error;
 		}
 	}
 	if((d = dirfstat(w->fd)) == nil){
-		seterror(L, "stat: %r");
+		error(L, "stat: %r");
 		goto Error;
 	}
 	int isdir = d->mode & DMDIR;
 	free(d);
 	if(!isdir){
-		seterror(L, "walk in a non-directory");
+		error(L, "walk in a non-directory");
 		goto Error;
 	}
 	/* return p9_walknext, p9-Walk, nil, p9-Walk */
-	int i = lua_gettop(L);
 	lua_pushcfunction(L, p9_walknext);
-	lua_pushvalue(L, i);
+	lua_pushvalue(L, wstate);
 	lua_pushnil(L);
-	lua_pushvalue(L, i);
+	lua_pushvalue(L, wstate);
 	return 4;
 Error:
-	lua_getiuservalue(L, -1, 1);
-	if(lua_istable(L, -1)){
-		pusherror(L);
-		lua_setfield(L, -2, "error");
+	if(nargs == 2){
+		lua_setfield(L, 2, "error");
 		lua_pushcfunction(L, p9_walkout);
 		return 1;
 	}
-	pusherror(L);
 	return lua_error(L);
 }
 
@@ -290,7 +283,7 @@ p9_walknext(lua_State *L)
 			w->dirs = nil;
 		}
 		if((w->nleft = dirread(w->fd, &w->dirs)) == -1){
-			seterror(L, "dirread: %r");
+			error(L, "dirread: %r");
 			goto Error;
 		}
 		w->p = w->dirs;
@@ -302,13 +295,14 @@ p9_walknext(lua_State *L)
 	createdirtable(L, d);
 	return 1;
 Error:
-	pusherror(L);
-	if(lua_istable(L, lua_upvalueindex(1))){
-		lua_setfield(L, lua_upvalueindex(1), "error");
+	if(lua_getiuservalue(L, 1, 1) == LUA_TTABLE){
+		lua_pushvalue(L, -2);
+		lua_setfield(L, -2, "error");
 		lua_pushnil(L);
 		return 1;
 	}
-	return lua_error(L);
+	lua_pop(L, 1);
+	return 2;
 }
 
 static int
@@ -317,10 +311,14 @@ p9_walkclose(lua_State *L)
 	Walk *w;
 	
 	w = luaL_checkudata(L, 1, "p9-Walk");
-	free(w->dirs);
-	w->dirs = nil;
-	close(w->fd);
-	w->fd = -1;
+	if(w->dirs != nil){
+		free(w->dirs);
+		w->dirs = nil;
+	}
+	if(w->fd != -1){
+		close(w->fd);
+		w->fd = -1;
+	}
 	return 0;
 }
 

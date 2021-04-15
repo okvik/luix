@@ -413,41 +413,4 @@ p9.env = setmetatable({}, {
 	end,
 })
 
-
-
-
--- Lethal API
--- p9.lethal() returns a proxy table that is just like the
--- regular p9 module table, except that each function field
--- is wrapped such that any error raised during a call
--- results in program termination. An error is printed to
--- fd 2 and the same error is used for the program's exit status.
--- Note that this only mechanism only works for the fields
--- of the p9 module, like the p9.open and friends.
--- In particular, it doesn't apply to methods of File objects
--- nor to the p9.env object.
--- This limitation should be removed in the future.
-
-local lethalproxy = setmetatable({}, {
-	__index = function(_, key)
-		if type(p9[key]) ~= "function" then
-			return p9[key]
-		end
-		return function(...)
-			local res = table.pack(pcall(p9[key], ...))
-			if not res[1] then
-				p9.write(2, string.format("%s: %s\n", arg[0] or "lua", res[2]))
-				os.exit(res[2])
-			end
-			table.remove(res, 1)
-			return table.unpack(res)
-		end
-	end
-})
-
---- lethal() -> p9{}
-function p9.lethal()
-	return lethalproxy
-end
-
 return p9

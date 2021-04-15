@@ -5,37 +5,21 @@
 #include <lua.h>
 #include <lauxlib.h>
 
-static void
-seterror(lua_State *L, char *fmt, ...)
+static int
+error(lua_State *L, char *fmt, ...)
 {
 	va_list varg;
 	int n;
 	char *buf;
 	luaL_Buffer b;
 	
+	lua_pushnil(L);
 	buf = luaL_buffinitsize(L, &b, 512);
 	va_start(varg, fmt);
 	n = vsnprint(buf, 512, fmt, varg);
 	va_end(varg);
 	luaL_pushresultsize(&b, n);
-	lua_setfield(L, LUA_REGISTRYINDEX, "p9-error");
-}
-
-static const char*
-pusherror(lua_State *L)
-{
-	lua_getfield(L, LUA_REGISTRYINDEX, "p9-error");
-	return lua_tostring(L, -1);
-}
-
-static void
-lerror(lua_State *L, char *call)
-{
-	char err[ERRMAX];
-	
-	rerrstr(err, sizeof err);
-	lua_pushfstring(L, "%s: %s", call, err);
-	lua_error(L);
+	return 2;
 }
 
 /* Memory allocator associated with Lua state */

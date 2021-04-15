@@ -6,7 +6,7 @@ p9_rfork(lua_State *L)
 	
 	flags = luaL_checkinteger(L, 1);
 	if((r = rfork(flags)) == -1)
-		lerror(L, "rfork");
+		return error(L, "rfork %r");
 	lua_pushinteger(L, r);
 	return 1;
 }
