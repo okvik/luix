@@ -303,6 +303,37 @@ p9_path(lua_State *L)
 }
 
 static int
+p9_iounit(lua_State *L)
+{
+	int fd;
+	
+	fd = filefd(L, 1);
+	lua_pushinteger(L, iounit(fd));
+	return 1;
+}
+
+static int
+p9_dup(lua_State *L)
+{
+	int fd, new, na;
+	
+	na = lua_gettop(L);
+	fd = filefd(L, 1);
+	if(na == 2)
+		new = filefd(L, 2);
+	else
+		new = -1;
+	if((new = dup(fd, new)) == -1)
+		return error(L, "dup: %r");
+	if(na == 2){
+		lua_pushinteger(L, new);
+		lua_setfield(L, 2, "fd");
+		return 1;
+	}
+	return filenew(L, new);
+}
+
+static int
 p9_remove(lua_State *L)
 {
 	const char *file;
@@ -311,16 +342,6 @@ p9_remove(lua_State *L)
 	if(remove(file) == -1)
 		return error(L, "remove: %r");
 	lua_pushboolean(L, 1);
-	return 1;
-}
-
-static int
-p9_iounit(lua_State *L)
-{
-	int fd;
-	
-	fd = filefd(L, 1);
-	lua_pushinteger(L, iounit(fd));
 	return 1;
 }
 

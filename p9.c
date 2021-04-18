@@ -192,6 +192,7 @@ luaopen_p9(lua_State *L)
 		{"seek", p9_seek},
 		{"iounit", p9_iounit},
 		{"path", p9_path},
+		{"dup", p9_dup},
 		{nil, nil},
 	};
 	luaL_newmetatable(L, "p9-File");

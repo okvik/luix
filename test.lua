@@ -82,6 +82,24 @@ do
 	f:close()
 end
 
+-- file:dup()
+do
+	local a, b = assert(p9.pipe())
+	local c = assert(a:dup())
+	a:write("hello")
+	assert(b:read() == "hello")
+	c:write("world")
+	assert(b:read() == "world")
+	a:close() b:close() c:close()
+	
+	a = assert(p9.open("/lib/glass"))
+	local buf = a:read()
+	b = assert(p9.open("/lib/bullshit"))
+	b = assert(a:dup(b))
+	b:seek(0)
+	assert(b:read() == buf)
+end
+	
 -- pipe
 do
 	local p₀, p₁ = assert(p9.pipe())
