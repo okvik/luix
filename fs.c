@@ -315,6 +315,16 @@ p9_fd2path(lua_State *L)
 }
 
 static int
+p9_iounit(lua_State *L)
+{
+	int fd;
+	
+	fd = filefd(L, 1);
+	lua_pushinteger(L, iounit(fd));
+	return 1;
+}
+
+static int
 p9_pipe(lua_State *L)
 {
 	int fd[2];

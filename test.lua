@@ -72,6 +72,7 @@ p9.file(fd):close()
 do
 	local fd = p9.create("/tmp/fd2path")
 	assert(p9.fd2path(fd.fd) == "/tmp/fd2path")
+	fd:close()
 end
 
 -- pipe
@@ -79,6 +80,14 @@ do
 	local p₀, p₁ = assert(p9.pipe())
 	p₀:write("ABCD")
 	assert(p₁:read() == "ABCD")
+	p₀:close(); p₁:close()
+end
+
+-- iounit
+do
+	local f = assert(p9.open("/srv/slashmnt"))
+	assert(f:iounit() != 0)
+	f:close()
 end
 
 -- Filesystem
