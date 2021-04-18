@@ -157,7 +157,6 @@ static luaL_Reg p9func[] = {
 	{"pipe", p9_pipe},
 	
 	{"remove", p9_remove},
-	{"fd2path", p9_fd2path},
 	
 	{"stat", p9_stat},
 	{"walk", p9_walk},
@@ -192,6 +191,7 @@ luaopen_p9(lua_State *L)
 		{"write", p9_write},
 		{"seek", p9_seek},
 		{"iounit", p9_iounit},
+		{"path", p9_path},
 		{nil, nil},
 	};
 	luaL_newmetatable(L, "p9-File");

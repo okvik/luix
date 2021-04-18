@@ -289,6 +289,20 @@ p9_write(lua_State *L)
 }
 
 static int
+p9_path(lua_State *L)
+{
+	int fd;
+	char *buf;
+	
+	fd = filefd(L, 1);
+	buf = getbuffer(L, Iosize);
+	if(fd2path(fd, buf, Iosize) != 0)
+		return error(L, "fd2path: %r");
+	lua_pushstring(L, buf);
+	return 1;
+}
+
+static int
 p9_remove(lua_State *L)
 {
 	const char *file;
@@ -297,20 +311,6 @@ p9_remove(lua_State *L)
 	if(remove(file) == -1)
 		return error(L, "remove: %r");
 	lua_pushboolean(L, 1);
-	return 1;
-}
-
-static int
-p9_fd2path(lua_State *L)
-{
-	lua_Integer fd;
-	char *buf;
-	
-	fd = luaL_checkinteger(L, 1);
-	buf = getbuffer(L, Iosize);
-	if(fd2path(fd, buf, Iosize) != 0)
-		return error(L, "fd2path: %r");
-	lua_pushstring(L, buf);
 	return 1;
 }
 
