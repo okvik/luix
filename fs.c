@@ -95,7 +95,7 @@ filenew(lua_State *L, int fd)
 {
 	int f;
 
-	lua_createtable(L, 0, 2);
+	lua_createtable(L, 0, 4);
 	f = lua_gettop(L);
 	lua_pushinteger(L, fd);
 		lua_setfield(L, f, "fd");
