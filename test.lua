@@ -74,6 +74,13 @@ do
 	assert(p9.fd2path(fd.fd) == "/tmp/fd2path")
 end
 
+-- pipe
+do
+	local p₀, p₁ = assert(p9.pipe())
+	p₀:write("ABCD")
+	assert(p₁:read() == "ABCD")
+end
+
 -- Filesystem
 do
 	-- Create a test tree

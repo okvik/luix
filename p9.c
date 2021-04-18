@@ -154,11 +154,10 @@ static luaL_Reg p9func[] = {
 	{"open", p9_open},
 	{"create", p9_create},
 	{"file", p9_file},
+	{"pipe", p9_pipe},
 	
 	{"remove", p9_remove},
 	{"fd2path", p9_fd2path},
-	{"getenv", p9_getenv},
-	{"setenv", p9_setenv},
 	
 	{"stat", p9_stat},
 	{"walk", p9_walk},
@@ -166,6 +165,9 @@ static luaL_Reg p9func[] = {
 	{"bind", p9_bind},
 	{"mount", p9_mount},
 	{"unmount", p9_unmount},
+	
+	{"getenv", p9_getenv},
+	{"setenv", p9_setenv},
 	
 	{"rfork", p9_rfork},
 	

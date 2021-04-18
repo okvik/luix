@@ -313,3 +313,15 @@ p9_fd2path(lua_State *L)
 	lua_pushstring(L, buf);
 	return 1;
 }
+
+static int
+p9_pipe(lua_State *L)
+{
+	int fd[2];
+	
+	if(pipe(fd) == -1)
+		return error(L, "pipe: %r");
+	filenew(L, fd[0]);
+	filenew(L, fd[1]);
+	return 2;
+}
