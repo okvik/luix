@@ -356,3 +356,43 @@ p9_pipe(lua_State *L)
 	filenew(L, fd[1]);
 	return 2;
 }
+
+static int
+accessmode(lua_State *L, const char *s)
+{
+	int i, n, mode;
+	char buf[64], *f[10], *p;
+	
+	snprint(buf, sizeof buf, "%s", s);
+	n = getfields(buf, f, sizeof f, 1, " \t\n");
+	mode = 0;
+	for(i = 0; p = f[i], i < n; i++){
+		if(strcmp(p, "exist") == 0 || strcmp(p, "exists") == 0)
+			mode |= AEXIST;
+		else if(strcmp(p, "r") == 0 || strcmp(p, "read") == 0)
+			mode |= AREAD;
+		else if(strcmp(p, "w") == 0 || strcmp(p, "write") == 0)
+			mode |= AWRITE;
+		else if(strcmp(p, "rw") == 0 || strcmp(p, "rdwr") == 0)
+			mode |= AREAD|AWRITE;
+		else if(strcmp(p, "x") == 0 || strcmp(p, "exec") == 0)
+			mode |= AEXEC;
+		else
+			return luaL_error(L, "unknown access flag '%s'", p);
+	}
+	return mode;
+}
+
+static int
+p9_access(lua_State *L)
+{
+	const char *path;
+	int mode;
+
+	path = luaL_checkstring(L, 1);
+	mode = accessmode(L, luaL_optstring(L, 2, "exists"));
+	lua_pushboolean(L, 
+		access(path, mode) == 0 ? 1 : 0
+	);
+	return 1;
+}

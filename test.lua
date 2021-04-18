@@ -99,6 +99,13 @@ do
 	b:seek(0)
 	assert(b:read() == buf)
 end
+
+-- access
+do
+	assert(p9.access("/dev/null"))
+	assert(p9.access("/dev/null", "read write"))
+	assert(p9.access("/bin/rc", "exec"))
+end
 	
 -- pipe
 do

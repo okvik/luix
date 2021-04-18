@@ -156,6 +156,7 @@ static luaL_Reg p9func[] = {
 	{"file", p9_file},
 	{"pipe", p9_pipe},
 	{"remove", p9_remove},
+	{"access", p9_access},
 	
 	{"stat", p9_stat},
 	{"walk", p9_walk},
