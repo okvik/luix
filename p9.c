@@ -5,6 +5,13 @@
 #include <lua.h>
 #include <lauxlib.h>
 
+enum {
+	Iosize = 8192,
+	Smallbuf = 512,
+};
+
+#define min(a, b) ((a) < (b) ? (a) : (b))
+
 static int
 error(lua_State *L, char *fmt, ...)
 {
@@ -14,9 +21,9 @@ error(lua_State *L, char *fmt, ...)
 	luaL_Buffer b;
 	
 	lua_pushnil(L);
-	buf = luaL_buffinitsize(L, &b, 512);
+	buf = luaL_buffinitsize(L, &b, Smallbuf);
 	va_start(varg, fmt);
-	n = vsnprint(buf, 512, fmt, varg);
+	n = vsnprint(buf, Smallbuf, fmt, varg);
 	va_end(varg);
 	luaL_pushresultsize(&b, n);
 	return 2;
@@ -84,6 +91,8 @@ getbuffer(lua_State *L, usize sz)
 }
 
 #include "fs.c"
+#include "walk.c"
+#include "env.c"
 #include "ns.c"
 #include "proc.c"
 
@@ -144,12 +153,12 @@ static Data p9data[] = {
 static luaL_Reg p9func[] = {
 	{"open", p9_open},
 	{"create", p9_create},
-	{"close", p9_close},
-	{"read", p9_read},
-	{"write", p9_write},
-	{"seek", p9_seek},
+	{"file", p9_file},
+	
 	{"remove", p9_remove},
 	{"fd2path", p9_fd2path},
+	{"getenv", p9_getenv},
+	{"setenv", p9_setenv},
 	
 	{"stat", p9_stat},
 	{"walk", p9_walk},
@@ -166,12 +175,25 @@ static luaL_Reg p9func[] = {
 int
 luaopen_p9(lua_State *L)
 {
+	int lib;
 	Buf *buf;
 	Data *d;
 	
-	buf = resizebuffer(L, nil, 8192);
+	buf = resizebuffer(L, nil, Iosize);
 	lua_pushlightuserdata(L, buf);
 	lua_setfield(L, LUA_REGISTRYINDEX, "p9-buffer");
+	
+	static luaL_Reg filemt[] = {
+		{"close", p9_close},
+		{"read", p9_read},
+		{"slurp", p9_slurp},
+		{"write", p9_write},
+		{"seek", p9_seek},
+		{nil, nil},
+	};
+	luaL_newmetatable(L, "p9-File");
+	luaL_setfuncs(L, filemt, 0);
+	lua_pop(L, 1);
 	
 	static luaL_Reg walkmt[] = {
 		{"__close", p9_walkclose},
@@ -179,11 +201,25 @@ luaopen_p9(lua_State *L)
 	};
 	luaL_newmetatable(L, "p9-Walk");
 	luaL_setfuncs(L, walkmt, 0);
+	lua_pop(L, 1);
 	
 	luaL_newlib(L, p9func);
+	lib = lua_gettop(L);
 	for(d = p9data; d->key != nil; d++){
 		lua_pushinteger(L, d->val);
 		lua_setfield(L, -2, d->key);
 	}
+	
+	static luaL_Reg envmt[] = {
+		{"__index", p9_getenv_index},
+		{"__newindex", p9_setenv_newindex},
+		{nil, nil},
+	};
+	lua_createtable(L, 0, 2);
+	luaL_setfuncs(L, envmt, 0);
+	lua_pushvalue(L, -1);
+	lua_setmetatable(L, -2);
+	lua_setfield(L, lib, "env");
+	
 	return 1;
 }

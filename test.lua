@@ -11,26 +11,12 @@ local function tmp()
 	return string.format("/tmp/lua.%x", math.random(1e10))
 end
 
-p9.rfork("en")
-os.execute("ramfs")
-
-local t = {
-	{nil, nil}, {"", nil}, {nil, ""},
-	{"r", nil}, {"r", ""},
-	{"w", "d644"},
-	{"rw", "d644"},
-	{nil, "d644"},
-	{"", "d644"},
-	{"r", "d644"},
-	{"w", "d644"},
-	{"rw", "d644"}
-}
-
-for i = 1, #t do
-	local mode = t[i][1]
-	local perm = t[i][2]
-	p9.close(p9.create(tmp(), mode, perm))
+local function rc()
+	os.execute("prompt='p9; ' rc -i")
 end
+
+p9.rfork("env name")
+os.execute("ramfs")
 
 
 
@@ -38,33 +24,30 @@ end
 do
 	local s = string.rep("ABCD", 2048*2) -- 16k > standard 8k buffer
 	local f = tmp()
-	local fd = p9.create(f, "rw")
-	p9.write(fd, s)
-	p9.close(fd)
-	fd = p9.open(f, "r")
-	assert(p9.slurp(fd) == s)
-	p9.close(fd)
-	fd = p9.open(f, "r")
-	assert(p9.slurp(fd, 2048) == string.rep("ABCD", 512))
-	p9.close(fd)
-	fd = p9.open(f, "r")
-	assert(p9.slurp(fd, 16*1024 + 999) == s)
-	p9.close(fd)
+	local fd = p9.create(f, "w")
+	fd:write(s)
+	fd:close()
+	
+	fd = p9.open(f)
+	assert(fd:slurp() == s)
+	fd:close()
 	
 	fd = p9.open(f, "r")
-	assert(p9.seek(fd, 0, "end") == 16*1024)
-	assert(p9.seek(fd, 8192, "set") == 8192
-		and p9.slurp(fd) == string.rep("ABCD", 2*1024))
-	p9.seek(fd, 0)
-	assert(p9.seek(fd, 16*1024 - 4, "cur") == 16*1024 - 4
-		and p9.slurp(fd) == "ABCD")
-	p9.close(fd)
-end
-
--- fd2path
-do
-	local fd = p9.create("/tmp/fd2path")
-	assert(p9.fd2path(fd) == "/tmp/fd2path")
+	assert(fd:slurp(2048) == string.rep("ABCD", 512))
+	fd:close()
+	
+	fd = p9.open(f, "r")
+	assert(fd:slurp(16*1024 + 999) == s)
+	fd:close()
+	
+	fd = p9.open(f, "r")
+	assert(fd:seek(0, "end") == 16*1024)
+	assert(fd:seek(8192, "set") == 8192
+		and fd:slurp() == string.rep("ABCD", 2*1024))
+	fd:seek(0)
+	assert(fd:seek(16*1024 - 4, "cur") == 16*1024 - 4
+		and fd:slurp() == "ABCD")
+	fd:close()
 end
 
 -- File objects
@@ -72,27 +55,23 @@ end
 -- Make sure it's closed
 local fd
 do
-	local f <close> = p9.createfile(tmp())
+	local f <close> = p9.create(tmp())
 	fd = f.fd
 end
-assert(p9.seek(fd, 0) == nil)
+assert(p9.file(fd):close() == nil)
 -- Make sure it's not closed
 local fd
 do
-	local f = p9.createfile(tmp())
+	local f = p9.create(tmp())
 	fd = f.fd
 end
-assert(p9.seek(fd, 0))
-p9.close(fd)
+assert(p9.file(fd):seek(0))
+p9.file(fd):close()
 
--- Basic operations. These are the same as regular
--- function calls so no need for much testing.
+-- fd2path
 do
-	local f <close> = p9.createfile(tmp(), "rw")
-	local data = string.rep("ABCD", 1024)
-	f:write(data)
-	f:seek(0)
-	assert(f:slurp() == data)
+	local fd = p9.create("/tmp/fd2path")
+	assert(p9.fd2path(fd.fd) == "/tmp/fd2path")
 end
 
 -- Filesystem
@@ -102,17 +81,16 @@ do
 		type = "file", perm = "644", data = data
 	} end
 	local function Dir(children) return {
-		type = "dir", perm = "d755", children = children
+		type = "dir", perm = "dir 755", children = children
 	} end
 	local function mkfs(path, d)
-		assert(d.type == "dir")
-		p9.createfile(path, nil, d.perm):close()
+		assert(p9.create(path, nil, d.perm))
 		for name, c in pairs(d.children) do
 			local new = path .. "/" .. name
 			if c.type == "dir" then
 				mkfs(new, c)
 			else
-				local f <close> = p9.createfile(new, "w", c.perm)
+				local f <close> = assert(p9.create(new, "w", c.perm))
 				f:write(c.data)
 			end
 		end
@@ -129,7 +107,16 @@ do
 		},
 		d = File "d",
 	}
-	mkfs("/tmp/fs", fs)
+	local function walk(fs)
+		dump(fs.perm)
+		for _, e in pairs(fs.children) do
+			if e.type == "dir" then
+				walk(e)
+			end
+		end
+	end
+	local ok, err = pcall(mkfs, "/tmp/fs", fs)
+	if not ok then print(err) end
 	
 	-- Stat a file
 	assert(p9.stat("/tmp/fs/a").mode.file)
@@ -173,19 +160,18 @@ end
 
 -- Namespaces
 -- bind and unmount work
-assert(function()
+do
 	local f
 	assert(p9.bind("#|", "/n/pipe"))
-	f = assert(p9.openfile("/n/pipe/data"))
+	f = assert(p9.open("/n/pipe/data"))
 	assert(p9.unmount("/n/pipe"))
-	assert(p9.openfile("/n/pipe/data") == nil)
-end)
+	assert(p9.open("/n/pipe/data") == nil)
+end
 -- mount works
-assert(function()
-	assert(p9.mount(p9.open("/srv/cwfs", "rw"), nil, "/n/test"))
-	assert(p9.openfile("/n/test/lib/glass"))
-end)
-
+do
+	assert(p9.mount("/srv/cwfs", "/n/test"))
+	assert(p9.open("/n/test/lib/glass"))
+end
 
 -- Process control
 -- No idea how to test this properly.

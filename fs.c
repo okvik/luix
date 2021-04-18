@@ -1,3 +1,150 @@
+/*
+ * The File object
+
+ * p9.file(fd) takes an open file descriptor and returns a
+ * File object f which provides a convenient method interface
+ * to the usual file operations.
+ * p9.open and p9.create take a file name to open or create.
+
+ * The file descriptor stored in f.fd is garbage collected,
+ * that is, it will be automatically closed once the File
+ * object becomes unreachable. Note how this means that f.fd
+ * should be used sparringly and with much care. In particular
+ * you shouldn't store it outside of f, since the actual file
+ * descriptor number might become invalid (closed) or refer
+ * to a completely different file after f is collected.
+ *
+ * Store the File object in some global place to prevent it
+ * from being collected.
+ */
+ 
+static int
+openmode(lua_State *L, char *s)
+{
+	int i, n, mode;
+	char r, w, x;
+	char buf[64], *f[10], *p;
+	
+	snprint(buf, sizeof buf, "%s", s);
+	mode = r = w = x = 0;
+	n = getfields(buf, f, sizeof f, 1, " \t\n");
+	if(n < 1)
+		return OREAD;
+	for(i = 0; p = f[i], i < n; i++){
+		if(strcmp(p, "r") == 0 || strcmp(p, "read") == 0)
+			r = 1;
+		else if(strcmp(p, "w") == 0 || strcmp(p, "write") == 0)
+			w = 1;
+		else if(strcmp(p, "rw") == 0 || strcmp(p, "rdwr") == 0)
+			r = w = 1;
+		else if(strcmp(p, "x") == 0 || strcmp(p, "exec") == 0)
+			x = 1;
+		else if(strcmp(p, "trunc") == 0)
+			mode |= OTRUNC;
+		else if(strcmp(p, "cexec") == 0)
+			mode |= OCEXEC;
+		else if(strcmp(p, "rclose") == 0)
+			mode |= ORCLOSE;
+		else if(strcmp(p, "excl") == 0)
+			mode |= OEXCL;
+		else
+			return luaL_error(L, "unknown mode flag '%s'", p);
+	}
+	if(x) mode |= OEXEC;
+	else if(r && w) mode |= ORDWR;
+	else if(r) mode |= OREAD;
+	else if(w) mode |= OWRITE;
+	return mode;
+}
+
+static ulong
+createperm(lua_State *L, char *s)
+{
+	int i, n;
+	ulong perm;
+	char buf[64], *f[10], *p;
+	
+	snprint(buf, sizeof buf, "%s", s);
+	perm = 0;
+	n = getfields(buf, f, sizeof f, 1, " \t\n");
+	if(n < 1)
+		return 0644;
+	for(i = 0; p = f[i], i < n; i++){
+		if(isdigit(p[0]))
+			perm |= strtol(p, nil, 8);
+		else if(strcmp(p, "dir") == 0)
+			perm |= DMDIR;
+		else if(strcmp(p, "tmp") == 0)
+			perm |= DMTMP;
+		else if(strcmp(p, "excl") == 0)
+			perm |= DMEXCL;
+		else if(strcmp(p, "append") == 0)
+			perm |= DMAPPEND;
+		else
+			return luaL_error(L, "unknown permission flag '%s'", p);
+	}
+	return perm;
+}
+
+static int filenew(lua_State*, int);
+static int fileclose(lua_State*);
+static int filefd(lua_State*, int);
+
+static int
+filenew(lua_State *L, int fd)
+{
+	int f;
+
+	lua_createtable(L, 0, 2);
+	f = lua_gettop(L);
+	lua_pushinteger(L, fd);
+		lua_setfield(L, f, "fd");
+	luaL_getmetatable(L, "p9-File");
+		lua_setfield(L, f, "__index");
+	lua_pushcfunction(L, fileclose);
+		lua_setfield(L, f, "__close");
+	lua_pushcfunction(L, fileclose);
+		lua_setfield(L, f, "__gc");
+	lua_pushvalue(L, f);
+		lua_setmetatable(L, f);
+	return 1;
+}
+
+static int
+fileclose(lua_State *L)
+{
+	int fd;
+	
+	fd = filefd(L, 1);
+	if(fd == -1)
+		return 0;
+	lua_pushinteger(L, -1);
+		lua_setfield(L, 1, "fd");
+	close(fd);
+	return 0;
+}
+
+static int
+filefd(lua_State *L, int idx)
+{
+	int fd;
+	
+	if(lua_getfield(L, idx, "fd") != LUA_TNUMBER)
+		return luaL_error(L, "fd must be integer");
+	fd = lua_tonumber(L, -1);
+	lua_pop(L, 1);
+	return fd;
+}
+
+static int
+p9_file(lua_State *L)
+{
+	int fd;
+	
+	fd = luaL_checkinteger(L, 1);
+	return filenew(L, fd);
+}
+
 static int
 p9_open(lua_State *L)
 {
@@ -6,11 +153,10 @@ p9_open(lua_State *L)
 	int fd;
 	
 	file = luaL_checkstring(L, 1);
-	mode = luaL_checkinteger(L, 2);
+	mode = openmode(L, luaL_optstring(L, 2, "read"));
 	if((fd = open(file, mode)) == -1)
 		return error(L, "open: %r");
-	lua_pushinteger(L, fd);
-	return 1;
+	return filenew(L, fd);
 }
 
 static int
@@ -21,31 +167,58 @@ p9_create(lua_State *L)
 	ulong perm;
 	
 	file = luaL_checkstring(L, 1);
-	mode = luaL_checkinteger(L, 2);
-	perm = luaL_checkinteger(L, 3);
+	mode = openmode(L, luaL_optstring(L, 2, "rdwr"));
+	perm = createperm(L, luaL_optstring(L, 3, "644"));
 	if((fd = create(file, mode, perm)) == -1)
 		return error(L, "create: %r");
-	lua_pushinteger(L, fd);
-	return 1;
+	return filenew(L, fd);
 }
 
 static int
 p9_close(lua_State *L)
 {
-	if(close(luaL_checkinteger(L, 1)) == -1)
+	if(close(filefd(L, 1)) == -1)
 		return error(L, "close: %r");
 	return 0;
 }
 
 static int
+seekmode(lua_State *L, char *s)
+{
+	if(strcmp(s, "set") == 0)
+		return 0;
+	if(strcmp(s, "cur") == 0)
+		return 1;
+	if(strcmp(s, "end") == 0)
+		return 2;
+	return luaL_error(L, "unknown seek mode '%s'", s);
+}
+
+static int
+p9_seek(lua_State *L)
+{
+	int fd, type;
+	vlong n, off;
+	
+	fd = filefd(L, 1);
+	n = luaL_checkinteger(L, 2);
+	type = seekmode(L, luaL_optstring(L, 3, "set"));
+	if((off = seek(fd, n, type)) == -1)
+		return error(L, "seek: %r");
+	lua_pushinteger(L, off);
+	return 1;
+}
+
+static int
 p9_read(lua_State *L)
 {
-	lua_Integer fd, nbytes, offset;
-	long n;
+	int fd;
+	long n, nbytes;
+	vlong offset;
 	char *buf;
 	
-	fd = luaL_checkinteger(L, 1);
-	nbytes = luaL_checkinteger(L, 2);
+	fd = filefd(L, 1);
+	nbytes = luaL_optinteger(L, 2, Iosize);
 	offset = luaL_optinteger(L, 3, -1);
 	buf = getbuffer(L, nbytes);
 	if(offset == -1)
@@ -59,6 +232,41 @@ p9_read(lua_State *L)
 }
 
 static int
+slurp(lua_State *L, int fd, long nbytes)
+{
+	int all;
+	long n, nr, tot;
+	char *buf;
+	luaL_Buffer b;
+	
+	all = (nbytes == -1) ? 1 : 0;
+	luaL_buffinit(L, &b);
+	for(tot = 0; all || tot < nbytes; tot += nr){
+		n = all ? Iosize : min(Iosize, nbytes - tot);
+		buf = luaL_prepbuffsize(&b, n);
+		if((nr = read(fd, buf, n)) == -1)
+			return error(L, "read: %r");
+		if(nr == 0)
+			break;
+		luaL_addsize(&b, nr);
+	}
+	luaL_pushresult(&b);
+	return 1;
+}
+
+static int
+p9_slurp(lua_State *L)
+{
+	int fd;
+	long nbytes;
+	
+	fd = filefd(L, 1);
+	nbytes = luaL_optinteger(L, 2, -1);
+	slurp(L, fd, nbytes);
+	return 1;
+}
+
+static int
 p9_write(lua_State *L)
 {
 	lua_Integer fd, offset;
@@ -66,7 +274,7 @@ p9_write(lua_State *L)
 	const char *buf;
 	long n;
 
-	fd = luaL_checkinteger(L, 1);
+	fd = filefd(L, 1);
 	buf = luaL_checklstring(L, 2, &nbytes);
 	nbytes = luaL_optinteger(L, 3, nbytes);
 	offset = luaL_optinteger(L, 4, -1);
@@ -77,21 +285,6 @@ p9_write(lua_State *L)
 	if(n != nbytes)
 		return error(L, "write: %r");
 	lua_pushinteger(L, n);
-	return 1;
-}
-
-static int
-p9_seek(lua_State *L)
-{
-	lua_Integer fd, n, type;
-	vlong off;
-	
-	fd = luaL_checkinteger(L, 1);
-	n = luaL_checkinteger(L, 2);
-	type = luaL_checkinteger(L, 3);
-	if((off = seek(fd, n, type)) == -1)
-		return error(L, "seek: %r");
-	lua_pushinteger(L, off);
 	return 1;
 }
 
@@ -114,211 +307,9 @@ p9_fd2path(lua_State *L)
 	char *buf;
 	
 	fd = luaL_checkinteger(L, 1);
-	buf = getbuffer(L, 8192);
-	if(fd2path(fd, buf, 8192) != 0)
+	buf = getbuffer(L, Iosize);
+	if(fd2path(fd, buf, Iosize) != 0)
 		return error(L, "fd2path: %r");
 	lua_pushstring(L, buf);
 	return 1;
 }
-
-static char*
-perms(int p, char *buf)
-{
-	buf[0] = p & 04 ? 'r' : '-';
-	buf[1] = p & 02 ? 'w' : '-';
-	buf[2] = p & 01 ? 'x' : '-';
-	return buf;
-}
-
-static void
-createdirtable(lua_State *L, Dir *d)
-{
-	#define set(t, k, v) do { \
-		lua_pushstring(L, (k)); \
-		lua_push##t(L, (v)); \
-		lua_rawset(L, -3); \
-	} while(0)
-	
-	lua_createtable(L, 0, 11);
-	set(integer, "type", d->type);
-	set(integer, "dev", d->dev);
-	set(integer, "atime", d->atime);
-	set(integer, "mtime", d->mtime);
-	set(integer, "length", d->length);
-	set(string, "name", d->name);
-	set(string, "uid", d->uid);
-	set(string, "gid", d->gid);
-	set(string, "muid", d->muid);
-	
-	lua_pushstring(L, "qid");
-	lua_createtable(L, 0, 3);
-	set(integer, "path", d->qid.path);
-	set(integer, "vers", d->qid.vers);
-	set(integer, "type", d->qid.type);
-	lua_rawset(L, -3);
-	
-	lua_pushstring(L, "mode");
-	lua_createtable(L, 0, 7);
-	ulong m = d->mode;
-	set(integer, "raw", m);
-	if(m & DMDIR)
-		set(boolean, "dir", 1);
-	else
-		set(boolean, "file", 1);
-	if(m & DMAPPEND)
-		set(boolean, "append", 1);
-	if(m & DMTMP)
-		set(boolean, "tmp", 1);
-	if(m & DMMOUNT)
-		set(boolean, "mount", 1);
-	if(m & DMAUTH)
-		set(boolean, "auth", 1);
-	char buf[10] = {0};
-	set(string, "user", perms((m & 0700) >> 6, buf));
-	set(string, "group", perms((m & 0070) >> 3, buf+3));
-	set(string, "other", perms((m & 0007) >> 0, buf+6));
-	set(string, "perm", buf);
-	lua_rawset(L, -3);
-	
-	#undef set
-}
-
-static int
-p9_stat(lua_State *L)
-{
-	Dir *d;
-	
-	d = nil;
-	switch(lua_type(L, 1)){
-	default:
-		USED(d);
-		return luaL_typeerror(L, 1, "string or number");
-	case LUA_TSTRING:
-		d = dirstat(lua_tostring(L, 1)); break;
-	case LUA_TNUMBER:
-		d = dirfstat(lua_tonumber(L, 1)); break;
-	}
-	if(d == nil)
-		return error(L, "stat: %r");
-	createdirtable(L, d);
-	free(d);
-	return 1;
-}
-
-typedef struct Walk {
-	int fd;
-	int nleft;
-	Dir *dirs, *p;
-} Walk;
-
-static int
-p9_walk(lua_State *L)
-{
-	static int p9_walkout(lua_State*);
-	static int p9_walknext(lua_State*);
-	int nargs, wstate;
-	Dir *d;
-	Walk *w;
-	
-	nargs = lua_gettop(L);
-	w = lua_newuserdatauv(L, sizeof(Walk), 1);
-	wstate = nargs + 1;
-	w->fd = -1;
-	w->nleft = 0;
-	w->dirs = w->p = nil;
-	luaL_setmetatable(L, "p9-Walk");
-	if(nargs == 2){
-		lua_pushvalue(L, 2);
-		lua_setiuservalue(L, wstate, 1);
-	}
-	if(lua_isnumber(L, 1))
-		w->fd = lua_tointeger(L, 1);
-	else{
-		if((w->fd = open(luaL_checkstring(L, 1), OREAD|OCEXEC)) == -1){
-			error(L, "open: %r");
-			goto Error;
-		}
-	}
-	if((d = dirfstat(w->fd)) == nil){
-		error(L, "stat: %r");
-		goto Error;
-	}
-	int isdir = d->mode & DMDIR;
-	free(d);
-	if(!isdir){
-		error(L, "walk in a non-directory");
-		goto Error;
-	}
-	/* return p9_walknext, p9-Walk, nil, p9-Walk */
-	lua_pushcfunction(L, p9_walknext);
-	lua_pushvalue(L, wstate);
-	lua_pushnil(L);
-	lua_pushvalue(L, wstate);
-	return 4;
-Error:
-	if(nargs == 2){
-		lua_setfield(L, 2, "error");
-		lua_pushcfunction(L, p9_walkout);
-		return 1;
-	}
-	return lua_error(L);
-}
-
-static int
-p9_walkout(lua_State*)
-{
-	return 0;
-}
-
-static int
-p9_walknext(lua_State *L)
-{
-	Walk *w;
-	Dir *d;
-	
-	w = luaL_checkudata(L, 1, "p9-Walk");
-	if(w->nleft == 0){
-		if(w->dirs != nil){
-			free(w->dirs);
-			w->dirs = nil;
-		}
-		if((w->nleft = dirread(w->fd, &w->dirs)) == -1){
-			error(L, "dirread: %r");
-			goto Error;
-		}
-		w->p = w->dirs;
-		if(w->nleft == 0)
-			return 0; /* Last Walk state will be closed */
-	}
-	w->nleft--;
-	d = w->p++;
-	createdirtable(L, d);
-	return 1;
-Error:
-	if(lua_getiuservalue(L, 1, 1) == LUA_TTABLE){
-		lua_pushvalue(L, -2);
-		lua_setfield(L, -2, "error");
-		lua_pushnil(L);
-		return 1;
-	}
-	lua_pop(L, 1);
-	return 2;
-}
-
-static int
-p9_walkclose(lua_State *L)
-{
-	Walk *w;
-	
-	w = luaL_checkudata(L, 1, "p9-Walk");
-	if(w->dirs != nil){
-		free(w->dirs);
-		w->dirs = nil;
-	}
-	if(w->fd != -1){
-		close(w->fd);
-		w->fd = -1;
-	}
-	return 0;
-}
-
