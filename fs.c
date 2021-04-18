@@ -175,7 +175,7 @@ p9_create(lua_State *L)
 }
 
 static int
-p9_close(lua_State *L)
+p9_file_close(lua_State *L)
 {
 	if(close(filefd(L, 1)) == -1)
 		return error(L, "close: %r");
@@ -195,7 +195,7 @@ seekmode(lua_State *L, char *s)
 }
 
 static int
-p9_seek(lua_State *L)
+p9_file_seek(lua_State *L)
 {
 	int fd, type;
 	vlong n, off;
@@ -210,7 +210,7 @@ p9_seek(lua_State *L)
 }
 
 static int
-p9_read(lua_State *L)
+p9_file_read(lua_State *L)
 {
 	int fd;
 	long n, nbytes;
@@ -255,7 +255,7 @@ slurp(lua_State *L, int fd, long nbytes)
 }
 
 static int
-p9_slurp(lua_State *L)
+p9_file_slurp(lua_State *L)
 {
 	int fd;
 	long nbytes;
@@ -267,7 +267,7 @@ p9_slurp(lua_State *L)
 }
 
 static int
-p9_write(lua_State *L)
+p9_file_write(lua_State *L)
 {
 	lua_Integer fd, offset;
 	size_t nbytes;
@@ -289,7 +289,7 @@ p9_write(lua_State *L)
 }
 
 static int
-p9_path(lua_State *L)
+p9_file_path(lua_State *L)
 {
 	int fd;
 	char *buf;
@@ -303,7 +303,7 @@ p9_path(lua_State *L)
 }
 
 static int
-p9_iounit(lua_State *L)
+p9_file_iounit(lua_State *L)
 {
 	int fd;
 	
@@ -313,7 +313,7 @@ p9_iounit(lua_State *L)
 }
 
 static int
-p9_dup(lua_State *L)
+p9_file_dup(lua_State *L)
 {
 	int fd, new, na;
 	

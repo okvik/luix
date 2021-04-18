@@ -155,7 +155,6 @@ static luaL_Reg p9func[] = {
 	{"create", p9_create},
 	{"file", p9_file},
 	{"pipe", p9_pipe},
-	
 	{"remove", p9_remove},
 	
 	{"stat", p9_stat},
@@ -185,14 +184,14 @@ luaopen_p9(lua_State *L)
 	lua_setfield(L, LUA_REGISTRYINDEX, "p9-buffer");
 	
 	static luaL_Reg filemt[] = {
-		{"close", p9_close},
-		{"read", p9_read},
-		{"slurp", p9_slurp},
-		{"write", p9_write},
-		{"seek", p9_seek},
-		{"iounit", p9_iounit},
-		{"path", p9_path},
-		{"dup", p9_dup},
+		{"close", p9_file_close},
+		{"read", p9_file_read},
+		{"slurp", p9_file_slurp},
+		{"write", p9_file_write},
+		{"seek", p9_file_seek},
+		{"iounit", p9_file_iounit},
+		{"path", p9_file_path},
+		{"dup", p9_file_dup},
 		{nil, nil},
 	};
 	luaL_newmetatable(L, "p9-File");
