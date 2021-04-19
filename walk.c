@@ -198,3 +198,34 @@ p9_walkclose(lua_State *L)
 	}
 	return 0;
 }
+
+static int
+p9_wstat(lua_State *L)
+{
+	static int createperm(lua_State*, char*); /* from fs.c */
+	const char *path, *k;
+	Dir new;
+	
+	path = luaL_checkstring(L, 1);
+	luaL_argexpected(L, lua_type(L, 2) == LUA_TTABLE, 2, "table");
+	nulldir(&new);
+	lua_pushnil(L);
+	while(lua_next(L, -2)){
+		k = lua_tostring(L, -2);
+		if(strcmp(k, "name") == 0)
+			new.name = (char*)lua_tostring(L, -1); /* dw */
+		else if(strcmp(k, "mode") == 0)
+			new.mode = createperm(L, lua_tostring(L, -1));
+		else if(strcmp(k, "mtime") == 0)
+			new.mtime = lua_tointeger(L, -1);
+		else if(strcmp(k, "gid") == 0)
+			new.gid = (char*)lua_tostring(L, -1);
+		else if(strcmp(k, "length") == 0)
+			new.length = lua_tointeger(L, -1);
+		lua_pop(L, 1);
+	}
+	if(dirwstat(path, &new) == -1)
+		return error(L, "wstat: %r");
+	lua_pushboolean(L, 1);
+	return 1;
+}

@@ -159,6 +159,7 @@ static luaL_Reg p9func[] = {
 	{"access", p9_access},
 	
 	{"stat", p9_stat},
+	{"wstat", p9_wstat},
 	{"walk", p9_walk},
 	
 	{"bind", p9_bind},

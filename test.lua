@@ -115,6 +115,15 @@ do
 	p₀:close(); p₁:close()
 end
 
+-- wstat
+do
+	local name = tmp()
+	assert(p9.create(name, nil, "644")):close()
+	assert(p9.wstat(name, {name = "notyourbusiness", mode = "append 777"}))
+	local st = assert(p9.stat("/tmp/notyourbusiness"))
+	assert(st.mode.file and st.mode.append and st.mode.perm == "rwxrwxrwx")
+end
+
 -- Filesystem
 do
 	-- Create a test tree
