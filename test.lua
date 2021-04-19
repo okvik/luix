@@ -229,7 +229,18 @@ do
 	assert(p9.sleep(0) == true)
 end
 
+-- wdir
+do
+	local cwd = assert(p9.wdir())
+	assert(p9.wdir("/dev") and p9.wdir() == "/dev")
+	assert(p9.wdir(cwd))
+end
 
+-- proc info
+do
+	assert(p9.user() and p9.sysname())
+	assert(p9.pid() and p9.ppid())
+end
 
 -- Environment variables
 do

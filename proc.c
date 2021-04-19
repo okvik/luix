@@ -51,6 +51,56 @@ p9_alarm(lua_State *L)
 }
 
 static int
+p9_wdir(lua_State *L)
+{
+	const char *path;
+	char *buf;
+	luaL_Buffer b;
+	
+	path = luaL_optstring(L, 1, nil);
+	if(path != nil){
+		if(chdir(path) == -1)
+			return error(L, "chdir: %r");
+		lua_pushboolean(L, 1);
+		return 1;
+	}
+	luaL_buffinitsize(L, &b, Iosize);
+	buf = luaL_buffaddr(&b);
+	if(getwd(buf, Iosize) == nil)
+		return error(L, "getwd: %r");
+	luaL_pushresultsize(&b, strlen(buf));
+	return 1;
+}
+
+static int
+p9_user(lua_State *L)
+{
+	lua_pushstring(L, getuser());
+	return 1;
+}
+
+static int
+p9_sysname(lua_State *L)
+{
+	lua_pushstring(L, sysname());
+	return 1;
+}
+
+static int
+p9_pid(lua_State *L)
+{
+	lua_pushinteger(L, getpid());
+	return 1;
+}
+
+static int
+p9_ppid(lua_State *L)
+{
+	lua_pushinteger(L, getppid());
+	return 1;
+}
+
+static int
 p9_rfork(lua_State *L)
 {
 	int flags, i, n, r;
