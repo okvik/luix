@@ -18,6 +18,17 @@ p9_sleep(lua_State *L)
 }
 
 static int
+p9_alarm(lua_State *L)
+{
+	long t, rem;
+	
+	t = luaL_checkinteger(L, 1);
+	rem = alarm(t);
+	lua_pushinteger(L, rem);
+	return 1;
+}
+
+static int
 p9_rfork(lua_State *L)
 {
 	int flags, i, n, r;
