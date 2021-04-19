@@ -172,6 +172,7 @@ static luaL_Reg p9func[] = {
 	
 	{"abort", p9_abort},
 	{"exits", p9_exits},
+	{"fatal", p9_fatal},
 	{"sleep", p9_sleep},
 	{"alarm", p9_alarm},
 	{"rfork", p9_rfork},

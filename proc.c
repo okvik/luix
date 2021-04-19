@@ -13,6 +13,21 @@ p9_exits(lua_State *L)
 }
 
 static int
+p9_fatal(lua_State *L)
+{
+	if(lua_gettop(L) > 1
+	&& lua_getglobal(L, "string") == LUA_TTABLE
+	&& lua_getfield(L, -1, "format") == LUA_TFUNCTION){
+		lua_remove(L, -2);
+		lua_insert(L, 1);
+		if(lua_pcall(L, lua_gettop(L) - 1, 1, 0) == LUA_OK)
+			sysfatal(lua_tostring(L, -1));
+	}
+	sysfatal(luaL_optstring(L, 1, "fatal"));
+	/* never */ return 0;
+}
+
+static int
 p9_sleep(lua_State *L)
 {
 	long t;
