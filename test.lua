@@ -256,3 +256,13 @@ do
 		and #e == 3 and e[1] == "d" and e[2] == "e" and e[3] == "f")
 	p9.env.test = nil
 end
+
+
+
+
+-- Misc.
+
+-- cleanname
+do
+	assert(p9.cleanname("/usr///./glenda/.") == "/usr/glenda")
+end

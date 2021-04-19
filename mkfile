@@ -17,4 +17,4 @@ $LIB: $OBJS
 %.$O: %.c
 	$CC $CFLAGS $stem.c
 
-p9.$O: p9.c fs.c walk.c env.c ns.c proc.c
+p9.$O: p9.c fs.c walk.c env.c ns.c proc.c misc.c

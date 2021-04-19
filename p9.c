@@ -95,6 +95,7 @@ getbuffer(lua_State *L, usize sz)
 #include "env.c"
 #include "ns.c"
 #include "proc.c"
+#include "misc.c"
 
 typedef struct Data {
 	char *key;
@@ -174,6 +175,8 @@ static luaL_Reg p9func[] = {
 	{"sleep", p9_sleep},
 	{"alarm", p9_alarm},
 	{"rfork", p9_rfork},
+	
+	{"cleanname", p9_cleanname},
 	
 	{nil, nil}
 };
