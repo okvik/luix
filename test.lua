@@ -242,6 +242,29 @@ do
 	assert(p9.pid() and p9.ppid())
 end
 
+-- Fork & Exec
+do
+	local us, them = p9.pipe()
+	if p9.rfork("proc nowait fd") == 0 then
+		them:dup(p9.file(0))
+		them:dup(p9.file(1))
+		them:close()
+		p9.exec("cat")
+	else
+		them:close()
+		us:write("HELLO CAT")
+		us:write("")
+		assert(us:slurp() == "HELLO CAT")
+		us:close()
+	end
+	
+	local ok = p9.exec("/dev/mordor")
+	assert(not ok)
+end
+
+
+
+
 -- Environment variables
 do
 	local e

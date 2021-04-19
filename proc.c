@@ -141,3 +141,27 @@ p9_rfork(lua_State *L)
 	lua_pushinteger(L, r);
 	return 1;
 }
+
+static int
+p9_exec(lua_State *L)
+{
+	int argc, i;
+	const char **argv, *p;
+	char buf[Smallbuf];
+	
+	argc = lua_gettop(L);
+	if(argc < 1)
+		luaL_argerror(L, 1, "string arguments expected");
+	argv = lalloc(L, nil, (argc+1) * sizeof(char*));
+	for(i = 1; i <= argc; i++)
+		argv[i-1] = luaL_checkstring(L, i);
+	argv[argc] = nil;
+	p = argv[0];
+	if(p[0] != '/' && (p[0] != '.' && p[1] != '/')){
+		snprint(buf, sizeof buf, "/bin/%s", argv[0]);
+		argv[0] = buf;
+	}
+	exec(argv[0], argv);
+	free(argv);
+	return error(L, "exec: %r");
+}
