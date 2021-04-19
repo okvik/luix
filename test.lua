@@ -224,7 +224,10 @@ do
 end
 
 -- Process control
--- No idea how to test this properly.
+-- No idea how to test some of this
+do
+	assert(p9.sleep(0) == true)
+end
 
 
 

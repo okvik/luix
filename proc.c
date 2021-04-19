@@ -6,6 +6,18 @@ p9_abort(lua_State*)
 }
 
 static int
+p9_sleep(lua_State *L)
+{
+	long t;
+	
+	t = luaL_checkinteger(L, 1);
+	lua_pushboolean(L,
+		sleep(t) == -1 ? 0 : 1
+	);
+	return 1;
+}
+
+static int
 p9_rfork(lua_State *L)
 {
 	int flags, i, n, r;
