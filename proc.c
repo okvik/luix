@@ -2,7 +2,14 @@ static int
 p9_abort(lua_State*)
 {
 	abort();
-	return 0;
+	/* never */ return 0;
+}
+
+static int
+p9_exits(lua_State *L)
+{
+	exits(luaL_optstring(L, 1, nil));
+	/* never */ return 0;
 }
 
 static int
