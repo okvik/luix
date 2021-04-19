@@ -176,6 +176,7 @@ static luaL_Reg p9func[] = {
 	{"sleep", p9_sleep},
 	{"alarm", p9_alarm},
 	{"rfork", p9_rfork},
+	{"wait", p9_wait},
 	{"exec", p9_exec},
 	{"wdir", p9_wdir},
 	{"pid", p9_pid},

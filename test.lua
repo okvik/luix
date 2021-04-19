@@ -260,6 +260,26 @@ do
 	
 	local ok = p9.exec("/dev/mordor")
 	assert(not ok)
+	
+	-- Wait
+	local N = 9
+	for i = 1, N do
+		if p9.rfork("proc") == 0 then
+			p9.exec("sleep", "0")
+		end
+	end
+	for i = 1, N do
+		local ok, w = p9.wait()
+	end
+	local ok = p9.wait()
+	assert(not ok)
+	-- Wait (status)
+	if p9.rfork("proc") == 0 then
+		p9.sleep(0)
+		p9.exits("i failed you")
+	end
+	local ok, w = p9.wait()
+	assert(not ok and w.status:match("i failed you"))
 end
 
 

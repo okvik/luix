@@ -165,3 +165,29 @@ p9_exec(lua_State *L)
 	free(argv);
 	return error(L, "exec: %r");
 }
+
+static int
+p9_wait(lua_State *L)
+{
+	Waitmsg *w;
+	
+	w = wait();
+	if(w == nil)
+		return error(L, "wait: %r");
+	lua_pushboolean(L, w->msg[0] == 0 ? 1 : 0);
+	lua_createtable(L, 0, 3);
+		lua_pushinteger(L, w->pid);
+			lua_setfield(L, -2, "pid");
+		lua_pushstring(L, w->msg);
+			lua_setfield(L, -2, "status");
+		lua_createtable(L, 3, 0);
+			lua_pushinteger(L, w->time[0]);
+				lua_setfield(L, -2, "user");
+			lua_pushinteger(L, w->time[1]);
+				lua_setfield(L, -2, "system");
+			lua_pushinteger(L, w->time[2]);
+				lua_setfield(L, -2, "real");
+		lua_setfield(L, -2, "time");
+	free(w);
+	return 2;
+}
