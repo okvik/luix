@@ -1,4 +1,11 @@
 static int
+p9_abort(lua_State*)
+{
+	abort();
+	return 0;
+}
+
+static int
 p9_rfork(lua_State *L)
 {
 	int flags, i, n, r;
