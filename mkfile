@@ -15,6 +15,9 @@ obj/:
 obj/%.$O: obj/ %/%.c
 	$CC $CFLAGS -o $target $stem/$stem.c
 
+obj/base.$O: base/common.c `{ls base/*.c}
+obj/note.$O: base/common.c `{ls note/*.c}
+
 $LIB: ${MOD:%=obj/%.$O}
 	ar cr $target $prereq
 
