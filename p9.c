@@ -96,6 +96,7 @@ getbuffer(lua_State *L, usize sz)
 #include "ns.c"
 #include "proc.c"
 #include "misc.c"
+#include "note.c"
 
 typedef struct Data {
 	char *key;
