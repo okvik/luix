@@ -24,7 +24,7 @@ error(lua_State *L, char *fmt, ...)
 
 /* Memory allocator associated with Lua state */
 static void*
-lalloc(lua_State *L, void *ptr, usize sz)
+Lallocf(lua_State *L, void *ptr, usize sz)
 {
 	void *ud;
 	
@@ -32,10 +32,12 @@ lalloc(lua_State *L, void *ptr, usize sz)
 		lua_pushliteral(L, "out of memory");
 		lua_error(L);
 	}
-	memset(ptr, 0, sz);
 	setmalloctag(ptr, getcallerpc(&L));
 	return ptr;
 }
+#define Lrealloc(L, ptr, sz) Lallocf(L, ptr, sz);
+#define Lmalloc(L, sz) Lallocf(L, nil, sz)
+#define Lfree(L, ptr) Lallocf(L, nil, 0)
 
 /* 
  * Various functions in this library require a
@@ -57,20 +59,18 @@ typedef struct Buf Buf;
 
 struct Buf {
 	usize sz;
-	char *b;
+	char b[1];
 };
 
 static Buf*
 resizebuffer(lua_State *L, Buf *buf, usize sz)
 {
 	if(buf == nil){
-		buf = lalloc(L, nil, sizeof(Buf));
-		buf->b = nil;
-		buf->sz = 0;
-	}
-	if(buf->sz < sz){
-		buf->b = lalloc(L, buf->b, sz);
+		buf = Lmalloc(L, sizeof(Buf) + sz);
 		buf->sz = sz;
+	}else if(buf->sz < sz){
+		Lfree(L, buf);
+		return resizebuffer(L, nil, sz);
 	}
 	return buf;
 }

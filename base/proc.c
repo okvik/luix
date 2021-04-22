@@ -152,7 +152,7 @@ p9_exec(lua_State *L)
 	argc = lua_gettop(L);
 	if(argc < 1)
 		luaL_argerror(L, 1, "string arguments expected");
-	argv = lalloc(L, nil, (argc+1) * sizeof(char*));
+	argv = Lmalloc(L, (argc+1) * sizeof(char*));
 	for(i = 1; i <= argc; i++)
 		argv[i-1] = luaL_checkstring(L, i);
 	argv[argc] = nil;
