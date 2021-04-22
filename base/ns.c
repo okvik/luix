@@ -1,4 +1,4 @@
-int
+static int
 parsemntflags(lua_State *L, char *s)
 {
 	int flags, n;

@@ -3,18 +3,22 @@
 CFLAGS=-FTVw -p -I../lua/shim -I../lua
 
 LIB=libp9.a.$O
+MOD=\
+	base\
+	note
 
-OBJS=p9.$O
+default:V: all
+
+obj/:
+	mkdir -p $target
+
+obj/%.$O: obj/ %/%.c
+	$CC $CFLAGS -o $target $stem/$stem.c
+
+$LIB: ${MOD:%=obj/%.$O}
+	ar cr $target $prereq
 
 all:V: $LIB
 
-clean:QV:
-	rm -f *.[$OS] *.a.[$OS]
-
-$LIB: $OBJS
-	ar cr $target $prereq
-
-%.$O: %.c
-	$CC $CFLAGS $stem.c
-
-p9.$O: p9.c fs.c walk.c env.c ns.c proc.c note.c misc.c
+clean:V:
+	rm -rf *.a.[$OS] obj/

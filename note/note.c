@@ -1,3 +1,11 @@
+#include <u.h>
+#include <libc.h>
+
+#include <lua.h>
+#include <lauxlib.h>
+
+#include "../base/common.c"
+
 /*
  * The following global state designates the Lua state
  * responsible for registering and running note handler
