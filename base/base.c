@@ -14,61 +14,7 @@
 #include "proc.c"
 #include "misc.c"
 
-typedef struct Data {
-	char *key;
-	lua_Integer val;
-} Data;
-
-static Data p9data[] = {
-	{"OREAD", OREAD},
-	{"OWRITE", OWRITE},
-	{"ORDWR", ORDWR},
-	{"OEXEC", OEXEC},
-	{"OTRUNC", OTRUNC},
-	{"OCEXEC", OCEXEC},
-	{"ORCLOSE", ORCLOSE},
-	{"OEXCL", OEXCL},
-	
-	{"DMDIR", DMDIR},
-	{"DMAPPEND", DMAPPEND},
-	{"DMEXCL", DMEXCL},
-	{"DMMOUNT", DMMOUNT},
-	{"DMAUTH", DMAUTH},
-	{"DMTMP", DMTMP},
-	{"DMREAD", DMREAD},
-	{"DMWRITE", DMWRITE},
-	{"DMEXEC", DMEXEC},
-	{"QTDIR", QTDIR},
-	{"QTAPPEND", QTAPPEND},
-	{"QTEXCL", QTEXCL},
-	{"QTMOUNT", QTMOUNT},
-	{"QTAUTH", QTAUTH},
-	{"QTTMP", QTTMP},
-	{"QTFILE", QTFILE},
-	
-	{"MREPL", MREPL},
-	{"MBEFORE", MBEFORE},
-	{"MAFTER", MAFTER},
-	{"MCREATE", MCREATE},
-	{"MCACHE", MCACHE},
-
-	{"RFPROC", RFPROC},
-	{"RFNOWAIT", RFNOWAIT},
-	{"RFNAMEG", RFNAMEG},
-	{"RFCNAMEG", RFCNAMEG},
-	{"RFNOMNT", RFNOMNT},
-	{"RFENVG", RFENVG},
-	{"RFCENVG", RFCENVG},
-	{"RFNOTEG", RFNOTEG},
-	{"RFFDG", RFFDG},
-	{"RFCFDG", RFCFDG},
-	{"RFREND", RFREND},
-	{"RFMEM", RFMEM},
-	
-	{nil, 0}
-};
-
-static luaL_Reg p9func[] = {
+static luaL_Reg p9_module[] = {
 	{"open", p9_open},
 	{"create", p9_create},
 	{"file", p9_file},
@@ -111,7 +57,6 @@ luaopen_p9(lua_State *L)
 {
 	int lib;
 	Buf *buf;
-	Data *d;
 	
 	buf = resizebuffer(L, nil, Iosize);
 	lua_pushlightuserdata(L, buf);
@@ -140,12 +85,8 @@ luaopen_p9(lua_State *L)
 	luaL_setfuncs(L, walkmt, 0);
 	lua_pop(L, 1);
 	
-	luaL_newlib(L, p9func);
+	luaL_newlib(L, p9_module);
 	lib = lua_gettop(L);
-	for(d = p9data; d->key != nil; d++){
-		lua_pushinteger(L, d->val);
-		lua_setfield(L, -2, d->key);
-	}
 	
 	static luaL_Reg envmt[] = {
 		{"__index", p9_getenv_index},

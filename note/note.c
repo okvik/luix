@@ -182,7 +182,7 @@ p9_note_post(lua_State *L)
 	return 1;
 }
 
-static luaL_Reg p9_note_funcs[] = {
+static luaL_Reg p9_note_module[] = {
 	{"post", p9_note_post},
 	{"catch", p9_note_catch},
 	{nil, nil},
@@ -199,7 +199,7 @@ luaopen_p9_note(lua_State *L)
 	lua_createtable(L, 1, 0);
 	lua_setfield(L, LUA_REGISTRYINDEX, "p9-note-handlers");
 	
-	luaL_newlib(L, p9_note_funcs);
+	luaL_newlib(L, p9_note_module);
 	
 	atnotify(notecatcher, 1);
 	return 1;
