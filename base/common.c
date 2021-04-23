@@ -82,5 +82,6 @@ getbuffer(lua_State *L, usize sz)
 	
 	lua_getfield(L, LUA_REGISTRYINDEX, "p9-buffer");
 	buf = lua_touserdata(L, -1);
+	lua_pop(L, 1);
 	return resizebuffer(L, buf, sz)->b;
 }
