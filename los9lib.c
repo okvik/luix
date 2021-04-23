@@ -73,6 +73,7 @@ os_execute(lua_State *L)
 		lua_pushstring(L, "exit");
 		lua_pushinteger(L, 0);
 	}
+	free(w);
 	return 3;
 }
 
