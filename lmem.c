@@ -171,6 +171,7 @@ void *luaM_realloc_ (lua_State *L, void *block, size_t osize, size_t nsize) {
   }
   lua_assert((nsize == 0) == (newblock == NULL));
   g->GCdebt = (g->GCdebt + nsize) - osize;
+  setmalloctag(newblock, getcallerpc(&L));
   return newblock;
 }
 
@@ -180,6 +181,7 @@ void *luaM_saferealloc_ (lua_State *L, void *block, size_t osize,
   void *newblock = luaM_realloc_(L, block, osize, nsize);
   if (l_unlikely(newblock == NULL && nsize > 0))  /* allocation failed? */
     luaM_error(L);
+  setmalloctag(newblock, getcallerpc(&L));
   return newblock;
 }
 
@@ -196,6 +198,7 @@ void *luaM_malloc_ (lua_State *L, size_t size, int tag) {
         luaM_error(L);
     }
     g->GCdebt += size;
+  	setmalloctag(newblock, getcallerpc(&L));
     return newblock;
   }
 }
