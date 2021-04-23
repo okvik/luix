@@ -35,7 +35,7 @@ Lallocf(lua_State *L, void *ptr, usize sz)
 	setmalloctag(ptr, getcallerpc(&L));
 	return ptr;
 }
-#define Lrealloc(L, ptr, sz) Lallocf(L, ptr, sz);
+#define Lrealloc(L, ptr, sz) Lallocf(L, ptr, sz)
 #define Lmalloc(L, sz) Lallocf(L, nil, sz)
 #define Lfree(L, ptr) Lallocf(L, nil, 0)
 
