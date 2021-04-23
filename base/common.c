@@ -28,7 +28,8 @@ Lallocf(lua_State *L, void *ptr, usize sz)
 {
 	void *ud;
 	
-	if((ptr = (lua_getallocf(L, &ud))(ud, ptr, LUA_TUSERDATA, sz)) == nil){
+	ptr = (lua_getallocf(L, &ud))(ud, ptr, LUA_TUSERDATA, sz);
+	if(ptr == nil && sz != 0){
 		lua_pushliteral(L, "out of memory");
 		lua_error(L);
 	}
@@ -37,7 +38,7 @@ Lallocf(lua_State *L, void *ptr, usize sz)
 }
 #define Lrealloc(L, ptr, sz) Lallocf(L, ptr, sz)
 #define Lmalloc(L, sz) Lallocf(L, nil, sz)
-#define Lfree(L, ptr) Lallocf(L, nil, 0)
+#define Lfree(L, ptr) Lallocf(L, ptr, 0)
 
 /* 
  * Various functions in this library require a

@@ -162,7 +162,7 @@ p9_exec(lua_State *L)
 		argv[0] = buf;
 	}
 	exec(argv[0], argv);
-	free(argv);
+	Lfree(L, argv);
 	return error(L, "exec: %r");
 }
 
