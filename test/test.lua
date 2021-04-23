@@ -320,3 +320,14 @@ end
 do
 	assert(p9.cleanname("/usr///./glenda/.") == "/usr/glenda")
 end
+
+
+
+
+-- Check for leaks (might not come from us)
+do
+	if p9.rfork("proc") == 0 then
+		p9.exec("leak", p9.ppid())
+	end
+	p9.wait()
+end
