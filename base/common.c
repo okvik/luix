@@ -86,3 +86,15 @@ getbuffer(lua_State *L, usize sz)
 	lua_pop(L, 1);
 	return resizebuffer(L, buf, sz)->b;
 }
+
+static void
+dumpstack(lua_State *L)
+{
+	int i, top;
+	
+	top = lua_gettop(L);
+	for(i = 1; i <= top; i++){
+		fprint(2, "%d: %s\n", i, luaL_tolstring(L, i, nil));
+		lua_pop(L, 1);
+	}
+}

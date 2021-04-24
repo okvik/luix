@@ -15,6 +15,8 @@ local function rc()
 	os.execute("prompt='p9; ' rc -i")
 end
 
+local leak = false
+
 p9.rfork("env name")
 os.execute("ramfs")
 
@@ -40,33 +42,18 @@ do
 	assert(fd:slurp(16*1024 + 999) == s)
 	fd:close()
 	
-	fd = p9.open(f, "r")
+	fd = assert(p9.open(f, "r"))
 	assert(fd:seek(0, "end") == 16*1024)
 	assert(fd:seek(8192, "set") == 8192
 		and fd:slurp() == string.rep("ABCD", 2*1024))
-	fd:seek(0)
-	assert(fd:seek(16*1024 - 4, "cur") == 16*1024 - 4
-		and fd:slurp() == "ABCD")
+	assert(fd:seek(0, "set"))
+	assert(fd:seek(16*1024 - 4, "set") == 16*1024 - 4)
+	assert(fd:slurp() == "ABCD")
 	fd:close()
 end
 
 -- File objects
--- Closing
--- Make sure it's closed
-local fd
-do
-	local f <close> = p9.create(tmp())
-	fd = f.fd
-end
-assert(p9.file(fd):close() == nil)
--- Make sure it's not closed
-local fd
-do
-	local f = p9.create(tmp())
-	fd = f.fd
-end
-assert(p9.file(fd):seek(0))
-p9.file(fd):close()
+-- TODO: closing and collecting.
 
 -- file:path()
 do
@@ -82,20 +69,20 @@ do
 	f:close()
 end
 
--- file:dup()
+-- file:dup() and file:set()
 do
-	local a, b = assert(p9.pipe())
+	local a, b = p9.pipe()
 	local c = assert(a:dup())
 	a:write("hello")
 	assert(b:read() == "hello")
 	c:write("world")
 	assert(b:read() == "world")
 	a:close() b:close() c:close()
-	
+
 	a = assert(p9.open("/lib/glass"))
-	local buf = a:read()
 	b = assert(p9.open("/lib/bullshit"))
-	b = assert(a:dup(b))
+	local buf = a:read()
+	assert(b:set(a))
 	b:seek(0)
 	assert(b:read() == buf)
 end
@@ -246,9 +233,9 @@ end
 do
 	local us, them = p9.pipe()
 	if p9.rfork("proc nowait fd") == 0 then
-		them:dup(p9.file(0))
-		them:dup(p9.file(1))
-		them:close()
+		us:close()
+		p9.fd[0]:set(them)
+		p9.fd[1]:set(them)
 		p9.exec("cat")
 	else
 		them:close()
@@ -325,7 +312,7 @@ end
 
 
 -- Check for leaks (might not come from us)
-do
+if leak then
 	if p9.rfork("proc") == 0 then
 		p9.exec("leak", p9.ppid())
 	end

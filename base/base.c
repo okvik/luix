@@ -17,10 +17,10 @@
 static luaL_Reg p9_module[] = {
 	{"open", p9_open},
 	{"create", p9_create},
-	{"file", p9_file},
 	{"pipe", p9_pipe},
 	{"remove", p9_remove},
 	{"access", p9_access},
+	{"fd", nil}, /* table placeholder */
 	
 	{"stat", p9_stat},
 	{"wstat", p9_wstat},
@@ -32,6 +32,7 @@ static luaL_Reg p9_module[] = {
 	
 	{"getenv", p9_getenv},
 	{"setenv", p9_setenv},
+	{"env", nil}, /* table placeholder */
 	
 	{"abort", p9_abort},
 	{"exits", p9_exits},
@@ -58,24 +59,25 @@ luaopen_p9(lua_State *L)
 	int lib;
 	Buf *buf;
 	
+	luaL_newlib(L, p9_module);
+	lib = lua_gettop(L);
+	
 	buf = resizebuffer(L, nil, Iosize);
 	lua_pushlightuserdata(L, buf);
 	lua_setfield(L, LUA_REGISTRYINDEX, "p9-buffer");
 	
-	static luaL_Reg filemt[] = {
-		{"close", p9_file_close},
-		{"read", p9_file_read},
-		{"slurp", p9_file_slurp},
-		{"write", p9_file_write},
-		{"seek", p9_file_seek},
-		{"iounit", p9_file_iounit},
-		{"path", p9_file_path},
-		{"dup", p9_file_dup},
-		{nil, nil},
-	};
 	luaL_newmetatable(L, "p9-File");
-	luaL_setfuncs(L, filemt, 0);
-	lua_pop(L, 1);
+	luaL_setfuncs(L, p9_file_proto, 0);
+	lua_pushvalue(L, -1);
+	lua_setfield(L, -2, "__index");
+	
+	/* Populate p9.fd[] with standard descriptors */
+	lua_createtable(L, 3, 0);
+	for(int i = 0; i < 3; i++){
+		filenew(L, i);
+		lua_rawseti(L, -2, i);
+	}
+	lua_setfield(L, lib, "fd");
 	
 	static luaL_Reg walkmt[] = {
 		{"__close", p9_walkclose},
@@ -83,10 +85,6 @@ luaopen_p9(lua_State *L)
 	};
 	luaL_newmetatable(L, "p9-Walk");
 	luaL_setfuncs(L, walkmt, 0);
-	lua_pop(L, 1);
-	
-	luaL_newlib(L, p9_module);
-	lib = lua_gettop(L);
 	
 	static luaL_Reg envmt[] = {
 		{"__index", p9_getenv_index},
@@ -99,5 +97,6 @@ luaopen_p9(lua_State *L)
 	lua_setmetatable(L, -2);
 	lua_setfield(L, lib, "env");
 	
+	lua_pushvalue(L, lib);
 	return 1;
 }

@@ -1,23 +1,63 @@
 /*
  * The File object
 
- * p9.file(fd) takes an open file descriptor and returns a
- * File object f which provides a convenient method interface
- * to the usual file operations.
- * p9.open and p9.create take a file name to open or create.
-
- * The file descriptor stored in f.fd is garbage collected,
- * that is, it will be automatically closed once the File
- * object becomes unreachable. Note how this means that f.fd
- * should be used sparringly and with much care. In particular
- * you shouldn't store it outside of f, since the actual file
- * descriptor number might become invalid (closed) or refer
- * to a completely different file after f is collected.
+ * p9.open and p9.create create a file object representing an
+ * open file descriptor.  This object's methods are then used
+ * for performing I/O and other operations.
  *
- * Store the File object in some global place to prevent it
- * from being collected.
+ * The file object holds a reference to a system resource, the
+ * open file descriptor, which you likely want to release as
+ * soon as it's not needed anymore.
+ * To help with that the file implements both __gc and __close
+ * metamethods, which will close it for you as soon as the file
+ * falls out of reach.
+ * file:close() will close the file descriptor immediately.
+ * file:keep() will prevent automatic closing of the file
+ * descriptor, which may be needed in some situations.
+ *
+ * During module load the standard file descriptors 0 through 2
+ * are wrapped in File objects and get stashed in p9.fd table:
+ * p9.fd[0] thus refers to the standard input, and so on.
+ * Being reachable through the module these aren't subject to
+ * garbage collection -- at least until Lua state is closed.
+ * You may use this table for stashing files for similar reasons.
+ * TODO: use this table to implement access to arbitrary
+ * already-open file descriptors.
  */
  
+typedef struct File File;
+
+struct File {
+	int fd;
+	int keep;
+};
+
+static int
+filenew(lua_State *L, int fd)
+{
+	File *f;
+	
+	f = lua_newuserdatauv(L, sizeof(File), 0);
+	f->fd = fd;
+	f->keep = 0;
+	luaL_setmetatable(L, "p9-File");
+	return 1;
+}
+
+static int
+fileclose(lua_State *L)
+{
+	File *f;
+	
+	f = luaL_checkudata(L, 1, "p9-File");
+	if(f->keep || f->fd == -1)
+		return 0;
+	if(close(f->fd) == -1)
+		return error(L, "close: %r");
+	f->fd = -1;
+	return 0;
+}
+
 static int
 openmode(lua_State *L, char *s)
 {
@@ -86,65 +126,6 @@ createperm(lua_State *L, char *s)
 	return perm;
 }
 
-static int filenew(lua_State*, int);
-static int fileclose(lua_State*);
-static int filefd(lua_State*, int);
-
-static int
-filenew(lua_State *L, int fd)
-{
-	int f;
-
-	lua_createtable(L, 0, 4);
-	f = lua_gettop(L);
-	lua_pushinteger(L, fd);
-		lua_setfield(L, f, "fd");
-	luaL_getmetatable(L, "p9-File");
-		lua_setfield(L, f, "__index");
-	lua_pushcfunction(L, fileclose);
-		lua_setfield(L, f, "__close");
-	lua_pushcfunction(L, fileclose);
-		lua_setfield(L, f, "__gc");
-	lua_pushvalue(L, f);
-		lua_setmetatable(L, f);
-	return 1;
-}
-
-static int
-fileclose(lua_State *L)
-{
-	int fd;
-	
-	fd = filefd(L, 1);
-	if(fd == -1)
-		return 0;
-	lua_pushinteger(L, -1);
-		lua_setfield(L, 1, "fd");
-	close(fd);
-	return 0;
-}
-
-static int
-filefd(lua_State *L, int idx)
-{
-	int fd;
-	
-	if(lua_getfield(L, idx, "fd") != LUA_TNUMBER)
-		return luaL_error(L, "fd must be integer");
-	fd = lua_tonumber(L, -1);
-	lua_pop(L, 1);
-	return fd;
-}
-
-static int
-p9_file(lua_State *L)
-{
-	int fd;
-	
-	fd = luaL_checkinteger(L, 1);
-	return filenew(L, fd);
-}
-
 static int
 p9_open(lua_State *L)
 {
@@ -175,11 +156,37 @@ p9_create(lua_State *L)
 }
 
 static int
+p9_pipe(lua_State *L)
+{
+	int fd[2];
+	
+	if(pipe(fd) == -1)
+		return error(L, "pipe: %r");
+	filenew(L, fd[0]);
+	filenew(L, fd[1]);
+	return 2;
+}
+
+static int
 p9_file_close(lua_State *L)
 {
-	if(close(filefd(L, 1)) == -1)
+	File *f;
+	
+	f = luaL_checkudata(L, 1, "p9-File");
+	if(close(f->fd) == -1)
 		return error(L, "close: %r");
+	f->fd = -1;
 	return 0;
+}
+
+static int
+p9_file_keep(lua_State *L)
+{
+	File *f;
+	
+	f = luaL_checkudata(L, 1, "p9-File");
+	f->keep = 1;
+	return 1;
 }
 
 static int
@@ -197,13 +204,14 @@ seekmode(lua_State *L, char *s)
 static int
 p9_file_seek(lua_State *L)
 {
-	int fd, type;
+	File *f;
+	int type;
 	vlong n, off;
 	
-	fd = filefd(L, 1);
+	f = luaL_checkudata(L, 1, "p9-File");
 	n = luaL_checkinteger(L, 2);
 	type = seekmode(L, luaL_optstring(L, 3, "set"));
-	if((off = seek(fd, n, type)) == -1)
+	if((off = seek(f->fd, n, type)) == -1)
 		return error(L, "seek: %r");
 	lua_pushinteger(L, off);
 	return 1;
@@ -212,19 +220,19 @@ p9_file_seek(lua_State *L)
 static int
 p9_file_read(lua_State *L)
 {
-	int fd;
+	File *f;
 	long n, nbytes;
 	vlong offset;
 	char *buf;
 	
-	fd = filefd(L, 1);
+	f = luaL_checkudata(L, 1, "p9-File");
 	nbytes = luaL_optinteger(L, 2, Iosize);
 	offset = luaL_optinteger(L, 3, -1);
 	buf = getbuffer(L, nbytes);
 	if(offset == -1)
-		n = read(fd, buf, nbytes);
+		n = read(f->fd, buf, nbytes);
 	else
-		n = pread(fd, buf, nbytes, offset);
+		n = pread(f->fd, buf, nbytes, offset);
 	if(n == -1)
 		return error(L, "read: %r");
 	lua_pushlstring(L, buf, n);
@@ -257,31 +265,32 @@ slurp(lua_State *L, int fd, long nbytes)
 static int
 p9_file_slurp(lua_State *L)
 {
-	int fd;
+	File *f;
 	long nbytes;
 	
-	fd = filefd(L, 1);
+	f = luaL_checkudata(L, 1, "p9-File");
 	nbytes = luaL_optinteger(L, 2, -1);
-	slurp(L, fd, nbytes);
+	slurp(L, f->fd, nbytes);
 	return 1;
 }
 
 static int
 p9_file_write(lua_State *L)
 {
-	lua_Integer fd, offset;
+	File *f;
+	lua_Integer offset;
 	size_t nbytes;
 	const char *buf;
 	long n;
 
-	fd = filefd(L, 1);
+	f = luaL_checkudata(L, 1, "p9-File");
 	buf = luaL_checklstring(L, 2, &nbytes);
 	nbytes = luaL_optinteger(L, 3, nbytes);
 	offset = luaL_optinteger(L, 4, -1);
 	if(offset == -1)
-		n = write(fd, buf, nbytes);
+		n = write(f->fd, buf, nbytes);
 	else
-		n = pwrite(fd, buf, nbytes, offset);
+		n = pwrite(f->fd, buf, nbytes, offset);
 	if(n != nbytes)
 		return error(L, "write: %r");
 	lua_pushinteger(L, n);
@@ -291,12 +300,12 @@ p9_file_write(lua_State *L)
 static int
 p9_file_path(lua_State *L)
 {
-	int fd;
+	File *f;
 	char *buf;
 	
-	fd = filefd(L, 1);
+	f = luaL_checkudata(L, 1, "p9-File");
 	buf = getbuffer(L, Iosize);
-	if(fd2path(fd, buf, Iosize) != 0)
+	if(fd2path(f->fd, buf, Iosize) != 0)
 		return error(L, "fd2path: %r");
 	lua_pushstring(L, buf);
 	return 1;
@@ -305,33 +314,63 @@ p9_file_path(lua_State *L)
 static int
 p9_file_iounit(lua_State *L)
 {
-	int fd;
+	File *f;
 	
-	fd = filefd(L, 1);
-	lua_pushinteger(L, iounit(fd));
+	f = luaL_checkudata(L, 1, "p9-File");
+	lua_pushinteger(L, iounit(f->fd));
 	return 1;
 }
 
 static int
 p9_file_dup(lua_State *L)
 {
-	int fd, new, na;
+	int fd;
+	File *f;
 	
-	na = lua_gettop(L);
-	fd = filefd(L, 1);
-	if(na == 2)
-		new = filefd(L, 2);
-	else
-		new = -1;
-	if((new = dup(fd, new)) == -1)
+	f = luaL_checkudata(L, 1, "p9-File");
+	if((fd = dup(f->fd, -1)) == -1)
 		return error(L, "dup: %r");
-	if(na == 2){
-		lua_pushinteger(L, new);
-		lua_setfield(L, 2, "fd");
-		return 1;
-	}
-	return filenew(L, new);
+	return filenew(L, fd);
 }
+
+static int
+p9_file_set(lua_State *L)
+{
+	int fd;
+	File *this, *that;
+	
+	this = luaL_checkudata(L, 1, "p9-File");
+	that = luaL_checkudata(L, 2, "p9-File");
+	if((fd = dup(that->fd, this->fd)) == -1)
+		return error(L, "dup: %r");
+	this->fd = fd;
+	lua_pushvalue(L, 1);
+	return 1;
+}
+
+static luaL_Reg p9_file_proto[] = {
+	{"close", p9_file_close},
+	{"keep", p9_file_keep},
+	{"read", p9_file_read},
+	{"slurp", p9_file_slurp},
+	{"write", p9_file_write},
+	{"seek", p9_file_seek},
+	{"iounit", p9_file_iounit},
+	{"path", p9_file_path},
+	{"dup", p9_file_dup},
+	{"set", p9_file_set},
+	
+	{"__gc", fileclose},
+	{"__close", fileclose},
+	{"__index", nil}, /* placeholder for ourselves */
+	
+	{nil, nil},
+};
+
+
+/*
+ * Assorted functions that don't work with or create Files
+ */
 
 static int
 p9_remove(lua_State *L)
@@ -343,18 +382,6 @@ p9_remove(lua_State *L)
 		return error(L, "remove: %r");
 	lua_pushboolean(L, 1);
 	return 1;
-}
-
-static int
-p9_pipe(lua_State *L)
-{
-	int fd[2];
-	
-	if(pipe(fd) == -1)
-		return error(L, "pipe: %r");
-	filenew(L, fd[0]);
-	filenew(L, fd[1]);
-	return 2;
 }
 
 static int
