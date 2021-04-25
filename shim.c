@@ -19,3 +19,18 @@ strerror(int)
 	rerrstr(err, sizeof err);
 	return err;
 }
+
+void
+exit(int code)
+{
+	char *status;
+	
+	switch(code){
+	case EXIT_SUCCESS:
+		status = nil; break;
+	case EXIT_FAILURE:
+	default:
+		status = "failure"; break;
+	}
+	exits(status);
+}
