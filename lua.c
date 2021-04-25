@@ -50,6 +50,15 @@ static void setsignal (int sig, void (*handler)(int)) {
   sigaction(sig, &sa, NULL);
 }
 
+#elif defined(LUA_USE_PLAN9)	/* }{ */
+
+/*
+ * Just pretend.
+ */
+#define SIG_DFL 0
+#define SIGINT 0
+#define setsignal(sig, handler)
+
 #else           /* }{ */
 
 #define setsignal            signal

@@ -4,6 +4,7 @@ CFLAGS=-FTV -p -Ishim -DLUA_USE_PLAN9 -DLUA_UCID
 
 LIB=liblua.a.$O
 LUAC=$O.luac
+LUA=$O.lua
 
 SHIMOBJS=\
 	shim.$O\
@@ -47,7 +48,7 @@ LIBOBJS=\
 
 ALLOBJS=$SHIMOBJS $COREOBJS $LIBOBJS
 
-all:V: $LIB $LUAC
+all:V: $LIB $LUA $LUAC
 
 clean:V:
 	rm -f *.[$OS] *.a.[$OS] [$OS].*
