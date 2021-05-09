@@ -98,6 +98,8 @@ typedef unsigned long long size_t;
 
 /** stdio.h **/
 #include "/sys/include/stdio.h"
+FILE *popen(char*, char*);
+int pclose(FILE*);
 
 /** stdlib.h **/
 #define EXIT_SUCCESS 0
