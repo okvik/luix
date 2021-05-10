@@ -45,7 +45,7 @@ struct a_fork {
 	char done;
 	int	fd;
 	int	pid;
-	char status[255+1];
+	char status[ERRMAX];
 };
 static struct a_fork the_fork[MAXFORKS];
 
@@ -111,7 +111,7 @@ pclose(FILE *file)
 			for(f = 0; f < MAXFORKS; f++){
 				if(r == the_fork[f].pid){
 					the_fork[f].done = 1;
-					strncpy(the_fork[f].status, status->msg, sizeof(the_fork[f].status));
+					strncpy(the_fork[f].status, status->msg, ERRMAX);
 					break;
 				}
 			}
