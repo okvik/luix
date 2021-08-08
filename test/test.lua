@@ -308,6 +308,23 @@ do
 	assert(p9.cleanname("/usr///./glenda/.") == "/usr/glenda")
 end
 
+-- baseN encode / decode
+do
+	t = {"", "h", "he", "hel", "hell", "hello", "hello ", "hello w", "hello wo", "hello wor", "hello worl", "hello world"}
+	for _, s in ipairs(t) do
+		local enc, dec
+		s = string.rep(s, 100)
+		enc = assert(p9.enc64(s))
+		dec = assert(p9.dec64(enc))
+		assert(dec == s)
+		enc = assert(p9.enc32(s))
+		dec = assert(p9.dec32(enc))
+		assert(dec == s)
+		enc = assert(p9.enc16(s))
+		dec = assert(p9.dec16(enc))
+		assert(dec == s)
+	end
+end
 
 
 

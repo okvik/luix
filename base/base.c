@@ -53,6 +53,13 @@ static luaL_Reg p9_module[] = {
 	{"nsec", p9_nsec},
 	{"cleanname", p9_cleanname},
 	
+	{"enc64", p9_enc64},
+	{"dec64", p9_dec64},
+	{"enc32", p9_enc32},
+	{"dec32", p9_dec32},
+	{"enc16", p9_enc16},
+	{"dec16", p9_dec16},
+	
 	{nil, nil}
 };
 
