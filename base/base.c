@@ -1,6 +1,7 @@
 #include <u.h>
 #include <libc.h>
 #include <ctype.h>
+#include <tos.h>
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -48,6 +49,8 @@ static luaL_Reg p9_module[] = {
 	{"user", p9_user},
 	{"sysname", p9_sysname},
 	
+	{"nanosec", p9_nanosec},
+	{"nsec", p9_nsec},
 	{"cleanname", p9_cleanname},
 	
 	{nil, nil}
