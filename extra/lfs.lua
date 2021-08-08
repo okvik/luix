@@ -4,6 +4,8 @@
 local lfs = {}
 local p9 = require "p9"
 
+lfs._VERSION = "LuaFileSystem 1.6.3"
+
 local function nope()
 	return nil, "unimplemented"
 end
