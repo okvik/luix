@@ -93,8 +93,8 @@ typedef int sig_atomic_t;
 /** stddef.h **/
 #define NULL ((void*)0)
 
-typedef long long ptrdiff_t;
-typedef unsigned long long size_t;
+typedef intptr ptrdiff_t;
+typedef usize size_t;
 
 /** stdio.h **/
 #include "/sys/include/stdio.h"
