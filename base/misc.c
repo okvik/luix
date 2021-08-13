@@ -4,7 +4,7 @@ static int
 p9_cleanname(lua_State *L)
 {
 	const char *path, *p;
-	lua_Unsigned len;
+	usize len;
 	luaL_Buffer b;
 	
 	path = luaL_checklstring(L, 1, &len);
