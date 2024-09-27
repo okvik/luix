@@ -1,4 +1,4 @@
-#!/bin/lu9
+#!/bin/luix
 local lfs = require "lfs"
 
 for n in lfs.dir(".") do

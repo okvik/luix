@@ -1,4 +1,4 @@
-#!/bin/lu9
+#!/bin/luix
 
 local p9 = require "p9"
 local dump = (function()

@@ -18,7 +18,7 @@
  * postponed handling of notes means this module should
  * be used with care and will likely need to be heavily
  * adapted for use in any but the simplest of hosts.
- * Lu9 standalone interpreter is an example of a simple
+ * luix standalone interpreter is an example of a simple
  * program with a single Lua state and Lua code being
  * "the boss", that is, the note is very likely to
  * interrupt a Lua VM rather than host code, and if not

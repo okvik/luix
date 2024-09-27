@@ -1,15 +1,15 @@
-.TH LU9 1
+.TH LUIX 1
 .SH NAME
-lu9 \- Lua standalone for Plan 9
+luix \- Lua standalone for Plan 9
 .SH SYNOPSIS
-.B lu9
+.B luix
 .RB [ -ivw ]
 .RI [ script ]
 .RI [ args
 .IR ... ]
 .SH DESCRIPTION
 .PP
-.I lu9
+.I luix
 is an interpreter for Lua as a standalone language.
 It runs Lua scripts and provides a basic REPL for
 interactive usage.
@@ -26,7 +26,7 @@ text processing library.
 Others are likely to be included in the future,
 guided by user demand.
 .SH USAGE
-.B lu9
+.B luix
 runs in script mode by default, loading the
 .I script
 file if given, or loading the script from standard input
@@ -79,26 +79,26 @@ does nothing, as dynamically loaded C modules aren't supported.
 Run a script with three arguments:
 .PP
 .EX
-; lu9 main.lua a b c
+; luix main.lua a b c
 .EE
 .PP
 Same as above, entering REPL after the script finishes:
 .PP
 .EX
-; lu9 -i main.lua a b c
+; luix -i main.lua a b c
 .EE
 .PP
 Run REPL with command line arguments:
 .PP
 .EX
-; lu9 -i /dev/null a b c
+; luix -i /dev/null a b c
 .EE
 .PP
 An executable Lua program can be created as expected:
 .PP
 .EX
 ; cat /bin/prog
-#!/bin/lu9
+#!/bin/luix
 io.write("hello world\\n")
 ; chmod +x /bin/prog
 ; prog
@@ -108,11 +108,11 @@ io.write("hello world\\n")
 Lua Reference Manual \- https://lua.org/manual/5.4
 .SH SOURCE
 .PP
-The interpreter and libraries making up the wider "lu9"
-project can be found at:
+The Plan 9 port of liblua, simplified standalone interpreter,
+and some additional libraries can be found at:
 .PP
 .EE
-https://sr.ht/~kvik/lu9/
+https://github.com/okvik/luix
 .EX
 .SH BUGS
 .PP
