@@ -212,7 +212,7 @@ void *luaM_malloc_ (lua_State *L, size_t size, int tag) {
         luaM_error(L);
     }
     g->GCdebt += size;
-  	setmalloctag(newblock, getcallerpc(&L));
+    setmalloctag(newblock, getcallerpc(&L));
     return newblock;
   }
 }
