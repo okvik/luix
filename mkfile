@@ -1,6 +1,6 @@
 </$objtype/mkfile
 
-VERSION=5.4
+VERSION=5.5
 
 CFLAGS=-FTVw -p -Ilua/shim -Ilua -Ilpeg -DLUA_USE_PLAN9
 
